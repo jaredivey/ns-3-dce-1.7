@@ -1,0 +1,377 @@
+diff -r model/dce-dirent.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-dirent.cc
+174a175,200
+> struct dirent64 * dce_readdir64 (DIR *dirp)
+> {
+>   NS_LOG_FUNCTION (Current () << UtilsGetNodeId ());
+>   NS_ASSERT (Current () != 0);
+>   Thread *current = Current ();
+>   struct my__dirstream *ds = (struct my__dirstream *) dirp;
+>   int saveFd = ds->fd;
+>   if (saveFd >= 0)
+>     {
+>       current->err = EBADF;
+>       return 0;
+>     }
+>   int realFd = getRealFd (-saveFd, current);
+>   if (realFd < 0)
+>     {
+>       ds->fd = saveFd;
+>       current->err = EBADF;
+>       return 0;
+>     }
+>   ds->fd = realFd;
+>   struct dirent64 *ret = readdir64 (dirp);
+>   ds->fd = saveFd;
+> 
+>   return ret;
+> }
+> 
+196a223,249
+>   ds->fd = saveFd;
+> 
+>   return ret;
+> }
+> 
+> int dce_readdir64_r (DIR *dirp, struct dirent64 *entry, struct dirent64 **result)
+> {
+>   NS_LOG_FUNCTION (Current () << UtilsGetNodeId ());
+>   NS_ASSERT (Current () != 0);
+>   Thread *current = Current ();
+>   struct my__dirstream *ds = (struct my__dirstream *) dirp;
+> 
+>   int saveFd = ds->fd;
+>   if (saveFd >= 0)
+>     {
+>       current->err = EBADF;
+>       return -1;
+>     }
+>   int realFd = getRealFd (-saveFd, current);
+>   if (realFd < 0)
+>     {
+>       ds->fd = saveFd;
+>       current->err = EBADF;
+>       return -1;
+>     }
+>   ds->fd = realFd;
+>   int ret = readdir64_r (dirp, entry, result);
+diff -r model/dce-dirent.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-dirent.h
+33a34
+> struct dirent64 * dce_readdir64 (DIR *dirp);
+34a36
+> int dce_readdir64_r (DIR *dirp, struct dirent64 *entry, struct dirent64 **result);
+diff -r model/dce-dl.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-dl.h
+3a4
+> int dce_dlclose(void *handle);
+diff -r model/dce-env.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-env.cc
+6a7
+> #include <cerrno>
+148a150,157
+> }
+> 
+> char * dce_realpath (const char *path, char *resolved_path)
+> {
+>   NS_LOG_FUNCTION (Current () << UtilsGetNodeId () << path);
+>   std::string stringPath = std::string(path);
+> //std::cout << "Given path: " << path << "; real path? " << UtilsGetVirtualFilePath (stringPath) << " " << UtilsGetRealFilePath (stringPath) << std::endl;
+>   return realpath (path, resolved_path);
+Only in /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model: dce-epoll.cc
+diff -r model/dce-fd.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-fd.cc
+114c114,122
+<       std::string fullpath = UtilsGetRealFilePath (path);
+---
+> 	  std::string fullpath;
+> //	  if (strncmp (path, "/proc/", 6) == 0)
+> //	  {
+> //		  fullpath = std::string(path);
+> //	  }
+> //	  else
+> 	  {
+> 	      fullpath = UtilsGetRealFilePath (path);
+> 	  }
+218,220c226,231
+<       current->process->openFiles.erase (fd);
+<       delete fu;
+<       fu = 0;
+---
+> 	  if (current->process->openFiles[fd] != NULL)
+> 	    {
+>           delete fu;
+>           current->process->openFiles.erase (fd);
+>           fu = 0;
+> 	    }
+627c638,645
+<   return dce_mmap64 (addr, length, prot, flags, fd, offset);
+---
+> 	if (addr != NULL)
+> 	{
+> 		return dce_mmap64 (addr, length, prot, flags, fd, offset);
+> 	}
+> 	else
+> 	{
+> 		return mmap (addr, length, prot, flags, fd, offset);
+> 	}
+629a648,649
+> static int filenameCount = 0;
+> 
+636a657,672
+>   Process *proc = current->process;
+>   int openFileCount = proc->openFiles.size();
+> 
+>   if (fd == -1)
+>   {
+> 	  char dummyFilename[256];
+> 	  int newfd = -1;
+> 	  sprintf (dummyFilename, "dummies/dummyFile%d", filenameCount); filenameCount++;
+> 	  newfd = dce_open (dummyFilename, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+> 	  if (newfd == -1 && errno == EEXIST)
+> 	  {
+> 		  newfd = dce_open (dummyFilename, O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+> 	  }
+> 	  fd = newfd;
+>   }
+> 
+854a891,913
+> }
+> 
+> ssize_t dce_sendfile(int out_fd, int in_fd, off_t * offset, size_t count)
+> {
+>   void *read_buf = NULL;
+>   read_buf = malloc (count);
+> 
+>   ssize_t res;
+>   if (offset)
+>     {
+>       res = dce_pread (in_fd, read_buf, count, *offset);
+>     }
+>   else
+>     {
+>       res = dce_read (in_fd, read_buf, count);
+>     }
+> 
+>   if (res == -1) return res;
+> 
+>   ssize_t ret = dce_write (out_fd, read_buf, count);
+> 
+>   free (read_buf);
+>   return ret;
+diff -r model/dce-poll.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-poll.cc
+248a249,253
+> 
+> long int dce___fdelt_chk (long int d)
+> {
+>   return d / (8 * sizeof (int));
+> }
+diff -r model/dce-pthread.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-pthread.cc
+17a18,19
+> #include "pthread-fiber-manager.h"
+> 
+405a408,490
+> int
+> dce_pthread_setname_np (pthread_t th, const char *name)
+> {
+>   Thread *current = Current ();
+>   NS_LOG_FUNCTION (current << UtilsGetNodeId () << PthreadToPid (th) 
+>                    << PthreadToTid (th) << name);
+>   NS_ASSERT (current != 0);
+>   Thread *thread = current->process->manager->SearchThread (PthreadToPid (th),
+>                                                             PthreadToTid (th));
+> 
+>   // XXX: set name
+>   return 0;
+> }
+> 
+> int
+> dce_pthread_getcpuclockid (pthread_t th, clockid_t *clock_id)
+> {
+>   Thread *current = Current ();
+>   NS_LOG_FUNCTION (current << UtilsGetNodeId () << PthreadToPid (th) << PthreadToTid (th));
+>   NS_ASSERT (current != 0);
+>   Thread *thread = current->process->manager->SearchThread (PthreadToPid (th),
+>                                                             PthreadToTid (th));
+>   if (thread == 0)
+>     {
+>       return ESRCH;
+>     }
+>   *clock_id = CLOCK_PROCESS_CPUTIME_ID;
+>   return 0;
+> }
+> 
+> int
+> dce_pthread_getattr_np(pthread_t th, pthread_attr_t *attr)
+> {
+>   Thread *current = Current ();
+>   NS_LOG_FUNCTION (current << UtilsGetNodeId () << PthreadToPid (th) << PthreadToTid (th));
+>   NS_ASSERT (current != 0);
+>   Thread *thread = current->process->manager->SearchThread (PthreadToPid (th),
+>                                                             PthreadToTid (th));
+>   if (thread == 0)
+>     {
+>       return ESRCH;
+>     }
+> 
+>   *attr = (pthread_attr_t){0};
+>   pthread_getattr_np(pthread_self(), attr);
+> //  pthread_attr_setdetachstate (attr, (int)thread->isDetached);
+> //  unsigned long int stacksize;
+> //  pthread_attr_getstacksize (attr, &stacksize);
+> //
+> //  Task *task = current->task;
+> //  Fiber *fiber = task->m_fiber;
+> //  PthreadFiber *pfiber = (PthreadFiber *)fiber;
+> //
+> //  pthread_attr_setstack(attr,
+> //		  pfiber->thread->stack_bounds.GetStart(),
+> //		  stacksize);
+>   //pthread_t curThread = PidTidToPthread (PthreadToPid (th), PthreadToTid (th)); // pthread_self();
+>   //int result = pthread_getattr_np (curThread, attr);
+>   return 0;
+> }
+> 
+> int
+> dce_pthread_attr_getstack(pthread_attr_t *attr, void **stackaddr, size_t *stacksize)
+> {
+> 	Thread *current = Current ();
+> 
+> 	Task *task = current->task;
+> 	Fiber *fiber = task->m_fiber;
+> 	PthreadFiber *pfiber = (PthreadFiber *)fiber;
+> 	pthread_attr_getstack (attr, stackaddr, stacksize);
+> 	//(*stackaddr) = pfiber->thread->stack_bounds.GetStart();
+> 	//(*stacksize) = pfiber->thread->stack_bounds.GetSize();
+> 	//printf ("Addr: %p vs. %p\n", *stackaddr, pfiber->thread->stack_bounds.GetStart());
+> 	//printf ("Size: %d vs. %d\n", *stacksize, pfiber->thread->stack_bounds.GetSize());
+> 	return 0;
+> }
+> 
+> int
+> dce_pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
+> {
+> 	return pthread_attr_setstacksize(attr, stacksize);
+> }
+> 
+diff -r model/dce-pthread.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-pthread.h
+4a5
+> #include <time.h>
+47a49,52
+> int dce_pthread_getcpuclockid (pthread_t thread, clockid_t *clock_id);
+> int dce_pthread_getattr_np(pthread_t thread, pthread_attr_t *attr);
+> int dce_pthread_attr_getstack(pthread_attr_t *attr, void **stackaddr, size_t *stacksize);
+> int dce_pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
+diff -r model/dce-pthread-mutex.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-pthread-mutex.cc
+103c103,104
+<       && attr->type != PTHREAD_MUTEX_NORMAL)
+---
+>       && attr->type != PTHREAD_MUTEX_NORMAL
+>       && attr->type != PTHREAD_MUTEX_ERRORCHECK)
+diff -r model/dce-pwd.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-pwd.cc
+19a20,29
+> int dce_getpwnam_r (const char *name, struct passwd *pwd, char *buf, size_t buflen, struct passwd **result)
+> {
+> 	return 0;
+> }
+> 
+> int dce_getpwuid_r (uid_t uid, struct passwd *pwd, char *buf, size_t buflen, struct passwd **result)
+> {
+> 	return 0;
+> }
+> 
+diff -r model/dce-pwd.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-pwd.h
+16a17,19
+> int dce_getpwnam_r (const char *name, struct passwd *pwd, char *buf, size_t buflen, struct passwd **result);
+> int dce_getpwuid_r (uid_t uid, struct passwd *pwd, char *buf, size_t buflen, struct passwd **result);
+> 
+diff -r model/dce-signal.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-signal.h
+23a24
+> int dce_pthread_setname_np (pthread_t thread, const char *name);
+diff -r model/dce-stdlib.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-stdlib.cc
+122,123c122
+<   int fd = dce_mkstemp ((char *)"temp");
+<   return dce_fdopen (fd, "w+");
+---
+>     return dce_fopen("temp.dat", "w+");
+diff -r model/dce-stdlib.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-stdlib.h
+25a26
+> char * dce_realpath (const char *path, char *resolved_path);
+diff -r model/dce-string.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-string.cc
+38a39,53
+> 
+> void * dce_memcpy (void *dest, const void *source, size_t num)
+> {
+>     return memcpy(dest, source, num);
+> }
+> 
+> void * dce___rawmemchr (const void *s, int c)
+> {
+> 	return strchr ((char *)s, c);
+> }
+> 
+> void * dce___memcpy_chk(void * dest, const void * src, size_t len, size_t destlen)
+> {
+> 	return memcpy(dest, src, len);
+> }
+diff -r model/dce-string.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-string.h
+16a17,19
+> void * dce_memcpy (void *dest, const void *source, size_t num);
+> void * dce___rawmemchr (const void *s, int c);
+> void * dce___memcpy_chk(void * dest, const void * src, size_t len, size_t destlen);
+diff -r model/dce-time.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-time.cc
+11a12
+> #include <iostream>
+diff -r model/dce-unistd.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/dce-unistd.h
+6a7
+> #include <sys/sendfile.h>
+88a90,93
+> 
+> ssize_t dce_sendfile(int out_fd, int in_fd, off_t * offset, size_t count);
+> 
+> size_t confstr (int name, char *buf, size_t len);
+diff -r model/elf-cache.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/elf-cache.cc
+37a38,40
+>   //overriden.from = "libjvm.so";
+>   //overriden.to = "libjvm-ns3.so";
+>   //m_overriden.push_back (overriden);
+diff -r model/kernel-socket-fd.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/kernel-socket-fd.cc
+138a139
+> 	std::cout << "KernelSocketFd::Mmap called\n";
+diff -r model/kernel-socket-fd-factory.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/kernel-socket-fd-factory.cc
+431c431
+< NS_LOG_FUNCTION (device << p << protocol << from << to << type);
+---
+>   NS_LOG_FUNCTION (device << p << protocol << from << to << type);
+diff -r model/libc-ns3.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/libc-ns3.h
+355d354
+< //DCE (open)
+605d603
+< DCE (endpwent)
+606a605
+> DCE (endpwent)
+diff -r model/pipe-fd.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/pipe-fd.cc
+386a387,390
+>     case F_GETFD:
+>     case F_SETFD:
+>       NS_LOG_WARN ("GETFD/SETFD ot implemented on pipe");
+>       break;
+diff -r model/pthread-fiber-manager.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/pthread-fiber-manager.h
+12,14d11
+< struct PthreadFiber;
+< class StackTrampoline;
+< 
+53a51
+> 
+54a53
+> class StackTrampoline;
+82a82
+> class StackTrampoline;
+Only in /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/sys: dce-epoll.h
+diff -r model/sys/dce-select.h /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/sys/dce-select.h
+9a10,11
+> long int dce___fdelt_chk (long int d);
+> 
+diff -r model/unix-file-fd.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/unix-file-fd.cc
+182d181
+< 
+diff -r model/unix-socket-fd.cc /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/model/unix-socket-fd.cc
+71c71
+< std::cout << "UnixSocketFd::Mmap called\n";
+---
+> 	std::cout << "UnixSocketFd::Mmap called\n";

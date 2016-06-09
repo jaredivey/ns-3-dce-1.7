@@ -1,0 +1,21 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+import ns3waf
+
+def configure(conf):
+	conf.load('compiler_c')
+	conf.load('compiler_cxx')
+	ns3waf.check_modules(conf, ['core', 'internet', 'applications', 'point-to-point'], mandatory = True)
+	 
+def build(bld): 
+	bld.program(source='server.c', target='../../bin_dce/server_gcc', cflags = [ '-fPIC'], linkflags    = ['-pie', '-rdynamic'])
+	bld.program(source='client.c', target='../../bin_dce/client_gcc', cflags = [ '-fPIC'], linkflags    = ['-pie', '-rdynamic'])
+	bld.program(source='server_client.c', target='../../bin_dce/server_client_gcc', cflags = [ '-fPIC'], linkflags    = ['-pie', '-rdynamic'])
+	bld.program(source='matrixmult.c', target='../../bin_dce/matrixmult_gcc', cflags = [ '-fPIC'], linkflags    = ['-pie', '-rdynamic'])
+	bld.program(source='pidigits.c', target='../../bin_dce/pidigits_gcc', cflags = [ '-fPIC'], linkflags    = ['-pie', '-rdynamic'])
+	bld.program(source='threadtest.c', target='../../bin_dce/threadtest_gcc', cflags = [ '-fPIC'], linkflags    = ['-pie', '-rdynamic', '-lpthread'])
+	bld.program(source='mandelbrot.c', target='../../bin_dce/mandelbrot_gcc', cflags = [ '-fPIC'], linkflags    = ['-pie', '-rdynamic'])
+	bld.build_a_script('dce', needed = ['core', 'internet', 'dce', 'applications', 'point-to-point' ], target='bin/dce-python-hello', source=['dce-python-hello.cc'] )
+	bld.build_a_script('dce', needed = ['core', 'internet', 'dce', 'applications', 'point-to-point' ], target='bin/dce-python-simple', source=['dce-python-simple.cc'] )
+	bld.build_a_script('dce', needed = ['core', 'internet', 'dce', 'applications', 'point-to-point' ], target='bin/dce-python-bench', source=['dce-python-bench.cc'] )
+	bld.build_a_script('dce', needed = ['core', 'internet', 'dce', 'applications', 'point-to-point' ], target='bin/dce-python-ping', source=['dce-python-ping.cc'] )

@@ -1,0 +1,27 @@
+Only in /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/: run-dce-python-bench.py
+Only in /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/: run-dce-python-hello.py
+Only in /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/: run-dce-python-ping.py
+diff ./wscript /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/wscript
+280a281
+>              ['test-epoll', []],
+602a604
+>         'model/linux-epoll-fd.cc',
+648a651
+>         'model/dce-epoll.cc',
+diff ./wutils.py /home/jaredivey/repos/dce-python-sdn/source/ns-3-dce/wutils.py
+104a105,107
+>                                              os.path.join(bld.out_dir, 'jvm/openjdk-1.8.0-internal/jre/lib'), \
+>                                              os.path.join(bld.out_dir, 'jvm/openjdk-1.8.0-internal/jre/lib/amd64'), \
+>                                              os.path.join(bld.out_dir, 'jvm/openjdk-1.8.0-internal/jre/lib/amd64/jli'), \
+105a109
+>                                              os.path.join(bld.out_dir, 'jvm/openjdk-1.8.0-internal/jre/bin'), \
+106a111,113
+>                                              os.path.join(bld.env.NS3_DIR, 'jvm/openjdk-1.8.0-internal/jre/lib'), \
+>                                              os.path.join(bld.env.NS3_DIR, 'jvm/openjdk-1.8.0-internal/jre/lib/amd64'), \
+>                                              os.path.join(bld.env.NS3_DIR, 'jvm/openjdk-1.8.0-internal/jre/lib/amd64/jli'), \
+107a115
+>                                              os.path.join(bld.env.NS3_DIR, 'jvm/openjdk-1.8.0-internal/jre/bin'), \
+111a120
+>                                                 os.path.join(bld.out_dir, 'jvm/openjdk-1.8.0-internal/jre/bin'), \
+112a122
+>                                                 os.path.join(bld.env.NS3_DIR, 'jvm/openjdk-1.8.0-internal/jre/bin'), \
