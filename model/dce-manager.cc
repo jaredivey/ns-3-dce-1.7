@@ -1284,6 +1284,38 @@ DceManager::LoadMain (Loader *ld, std::string filename, Process *proc, int &err)
           libdl_setup = (void (*) (const struct Libc *))(symbol);
           libdl_setup (libc);
 
+          h = ld->Load ("libcudart-ns3.so", RTLD_GLOBAL);
+          if (h == 0)
+            {
+              err = ENOMEM;
+              return 0;
+            }
+          symbol = ld->Lookup (h, "libcudart_setup");
+          if (symbol == 0)
+            {
+              NS_FATAL_ERROR ("This is not our fake libcudart !");
+            }
+          // construct libcudart now
+          void (*libcudart_setup)(const struct Libc *fn);
+          libcudart_setup = (void (*) (const struct Libc *))(symbol);
+          libcudart_setup (libc);
+
+          h = ld->Load ("libcuda-ns3.so", RTLD_GLOBAL);
+          if (h == 0)
+            {
+              err = ENOMEM;
+              return 0;
+            }
+          symbol = ld->Lookup (h, "libcuda_setup");
+          if (symbol == 0)
+            {
+              NS_FATAL_ERROR ("This is not our fake libcuda !");
+            }
+          // construct libcuda now
+          void (*libcuda_setup)(const struct Libc *fn);
+          libcuda_setup = (void (*) (const struct Libc *))(symbol);
+          libcuda_setup (libc);
+
           // finally, call into 'main'.
           h = ld->Load (filename, RTLD_GLOBAL);
 

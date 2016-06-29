@@ -243,6 +243,7 @@ ElfDependencies::GetSearchDirectories (void) const
     }
   directories.push_back ("/lib");
   directories.push_back ("/usr/lib");
+  directories.push_back ("/usr/lib/x86_64-linux-gnu");
   directories.push_back (".");
   return directories;
 }

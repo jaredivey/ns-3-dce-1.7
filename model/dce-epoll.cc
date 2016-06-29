@@ -48,6 +48,11 @@ int dce_epoll_create (int size)
   return fd;
 }
 
+int dce_epoll_create1 (int flags)
+{
+  dce_epoll_create (1);
+}
+
 int
 dce_epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 {
