@@ -42,6 +42,7 @@
 #include "dce-dirent.h"
 #include "dce-vfs.h"
 #include "dce-termio.h"
+#include "dce-dl.h"
 #include "cuda-frontend/cudart.h"
 #include "cuda-frontend/cudadr.h"
 
