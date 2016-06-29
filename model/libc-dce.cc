@@ -42,7 +42,8 @@
 #include "dce-dirent.h"
 #include "dce-vfs.h"
 #include "dce-termio.h"
-#include "dce-dl.h"
+#include "cuda-frontend/cudart.h"
+#include "cuda-frontend/cudadr.h"
 
 #include <arpa/inet.h>
 #include <ctype.h>
@@ -99,14 +100,15 @@
 #include <sys/vfs.h>
 #include <termio.h>
 #include <math.h>
-#include <assert.h>
 #include <dlfcn.h>
+#include <assert.h>
 #include <link.h>
 #include <sys/syscall.h>
 #include <iconv.h>
 #include <sys/file.h>
 #include <readline/readline.h>
 #include <fenv.h>
+#include <sys/eventfd.h>
 
 extern void __cxa_finalize (void *d);
 extern int __cxa_atexit (void (*func)(void *), void *arg, void *d);
@@ -192,6 +194,202 @@ void libc_dce (struct Libc **libc)
   (*libc)->strpbrk_fn = dce_strpbrk;
   (*libc)->strstr_fn = dce_strstr;
   (*libc)->vsnprintf_fn = dce_vsnprintf;
+
+  // cudadr-context.cc
+  (*libc)->cuCtxCreate_fn = dce_cuCtxCreate;
+  (*libc)->cuCtxAttach_fn = dce_cuCtxAttach;
+  (*libc)->cuCtxDestroy_fn = dce_cuCtxDestroy;
+  (*libc)->cuCtxDetach_fn = dce_cuCtxDetach;
+  (*libc)->cuCtxGetDevice_fn = dce_cuCtxGetDevice;
+  (*libc)->cuCtxPopCurrent_fn = dce_cuCtxPopCurrent;
+  (*libc)->cuCtxPushCurrent_fn = dce_cuCtxPushCurrent;
+  (*libc)->cuCtxSynchronize_fn = dce_cuCtxSynchronize;
+
+  // cudadr-device.cc
+  (*libc)->cuDeviceComputeCapability_fn = dce_cuDeviceComputeCapability;
+  (*libc)->cuDeviceGet_fn = dce_cuDeviceGet;
+  (*libc)->cuDeviceGetAttribute_fn = dce_cuDeviceGetAttribute;
+  (*libc)->cuDeviceGetCount_fn = dce_cuDeviceGetCount;
+  (*libc)->cuDeviceGetName_fn = dce_cuDeviceGetName;
+  (*libc)->cuDeviceGetProperties_fn = dce_cuDeviceGetProperties;
+  (*libc)->cuDeviceTotalMem_fn = dce_cuDeviceTotalMem;
+
+  // cudadr-event.cc
+  (*libc)->cuEventCreate_fn = dce_cuEventCreate;
+  (*libc)->cuEventDestroy_fn = dce_cuEventDestroy;
+  (*libc)->cuEventElapsedTime_fn = dce_cuEventElapsedTime;
+  (*libc)->cuEventQuery_fn = dce_cuEventQuery;
+  (*libc)->cuEventRecord_fn = dce_cuEventRecord;
+  (*libc)->cuEventSynchronize_fn = dce_cuEventSynchronize;
+
+  // cudadr-execution.cc
+  (*libc)->cuParamSetSize_fn = dce_cuParamSetSize;
+  (*libc)->cuFuncSetBlockShape_fn = dce_cuFuncSetBlockShape;
+  (*libc)->cuLaunchGrid_fn = dce_cuLaunchGrid;
+  (*libc)->cuFuncGetAttribute_fn = dce_cuFuncGetAttribute;
+  (*libc)->cuFuncSetSharedSize_fn = dce_cuFuncSetSharedSize;
+  (*libc)->cuLaunch_fn = dce_cuLaunch;
+  (*libc)->cuLaunchKernel_fn = dce_cuLaunchKernel;
+  (*libc)->cuLaunchGridAsync_fn = dce_cuLaunchGridAsync;
+  (*libc)->cuParamSetf_fn = dce_cuParamSetf;
+  (*libc)->cuParamSeti_fn = dce_cuParamSeti;
+  (*libc)->cuParamSetTexRef_fn = dce_cuParamSetTexRef;
+  (*libc)->cuParamSetv_fn = dce_cuParamSetv;
+  (*libc)->cuFuncSetCacheConfig_fn = dce_cuFuncSetCacheConfig;
+
+  // cudadr-initialization.cc
+  (*libc)->cuInit_fn = dce_cuInit;
+
+  // cudadr-memory.cc
+  (*libc)->cuMemFree_fn = dce_cuMemFree;
+  (*libc)->cuMemAlloc_fn = dce_cuMemAlloc;
+  (*libc)->cuMemcpyDtoH_fn = dce_cuMemcpyDtoH;
+  (*libc)->cuMemcpyHtoD_fn = dce_cuMemcpyHtoD;
+  (*libc)->cuArrayCreate_fn = dce_cuArrayCreate;
+  (*libc)->cuArray3DCreate_fn = dce_cuArray3DCreate;
+  (*libc)->cuMemcpy2D_fn = dce_cuMemcpy2D;
+  (*libc)->cuArrayDestroy_fn = dce_cuArrayDestroy;
+  (*libc)->cuMemAllocPitch_fn = dce_cuMemAllocPitch;
+  (*libc)->cuMemGetAddressRange_fn = dce_cuMemGetAddressRange;
+  (*libc)->cuMemGetInfo_fn = dce_cuMemGetInfo;
+
+  // cudadr-module.cc
+  (*libc)->cuModuleLoadData_fn = dce_cuModuleLoadData;
+  (*libc)->cuModuleGetFunction_fn = dce_cuModuleGetFunction;
+  (*libc)->cuModuleGetGlobal_fn = dce_cuModuleGetGlobal;
+  (*libc)->cuModuleGetTexRef_fn = dce_cuModuleGetTexRef;
+  (*libc)->cuModuleLoadDataEx_fn = dce_cuModuleLoadDataEx;
+
+  // cudadr-stream.cc
+  (*libc)->cuStreamCreate_fn = dce_cuStreamCreate;
+  (*libc)->cuStreamDestroy_fn = dce_cuStreamDestroy;
+  (*libc)->cuStreamQuery_fn = dce_cuStreamQuery;
+  (*libc)->cuStreamSynchronize_fn = dce_cuStreamSynchronize;
+
+  // cudadr-texture.cc
+  (*libc)->cuTexRefSetArray_fn = dce_cuTexRefSetArray;
+  (*libc)->cuTexRefSetAddressMode_fn = dce_cuTexRefSetAddressMode;
+  (*libc)->cuTexRefSetFilterMode_fn = dce_cuTexRefSetFilterMode;
+  (*libc)->cuTexRefSetFlags_fn = dce_cuTexRefSetFlags;
+  (*libc)->cuTexRefSetFormat_fn = dce_cuTexRefSetFormat;
+  (*libc)->cuTexRefGetAddress_fn = dce_cuTexRefGetAddress;
+  (*libc)->cuTexRefGetArray_fn = dce_cuTexRefGetArray;
+  (*libc)->cuTexRefGetFlags_fn = dce_cuTexRefGetFlags;
+  (*libc)->cuTexRefSetAddress_fn = dce_cuTexRefSetAddress;
+
+  // cudadr-version.cc
+  (*libc)->cuDriverGetVersion_fn = dce_cuDriverGetVersion;
+
+  // cudart-memory.cc
+  (*libc)->cudaFree_fn = dce_cudaFree;
+  (*libc)->cudaFreeArray_fn = dce_cudaFreeArray;
+  (*libc)->cudaFreeHost_fn = dce_cudaFreeHost;
+  (*libc)->cudaGetSymbolAddress_fn = dce_cudaGetSymbolAddress;
+  (*libc)->cudaGetSymbolSize_fn = dce_cudaGetSymbolSize;
+  (*libc)->cudaHostAlloc_fn = dce_cudaHostAlloc;
+  (*libc)->cudaHostGetDevicePointer_fn = dce_cudaHostGetDevicePointer;
+  (*libc)->cudaHostGetFlags_fn = dce_cudaHostGetFlags;
+  (*libc)->cudaMalloc_fn = dce_cudaMalloc;
+  (*libc)->cudaMalloc3D_fn = dce_cudaMalloc3D;
+  (*libc)->cudaMalloc3DArray_fn = dce_cudaMalloc3DArray;
+  (*libc)->cudaMallocArray_fn = dce_cudaMallocArray;
+  (*libc)->cudaMallocHost_fn = dce_cudaMallocHost;
+  (*libc)->cudaMallocPitch_fn = dce_cudaMallocPitch;
+  (*libc)->cudaMemcpy_fn = dce_cudaMemcpy;
+  (*libc)->cudaMemcpy2D_fn = dce_cudaMemcpy2D;
+  (*libc)->cudaMemcpy2DArrayToArray_fn = dce_cudaMemcpy2DArrayToArray;
+  (*libc)->cudaMemcpy2DAsync_fn = dce_cudaMemcpy2DAsync;
+  (*libc)->cudaMemcpy2DFromArray_fn = dce_cudaMemcpy2DFromArray;
+  (*libc)->cudaMemcpy2DFromArrayAsync_fn = dce_cudaMemcpy2DFromArrayAsync;
+  (*libc)->cudaMemcpy2DToArray_fn = dce_cudaMemcpy2DToArray;
+  (*libc)->cudaMemcpy2DToArrayAsync_fn = dce_cudaMemcpy2DToArrayAsync;
+  (*libc)->cudaMemcpy3D_fn = dce_cudaMemcpy3D;
+  (*libc)->cudaMemcpy3DAsync_fn = dce_cudaMemcpy3DAsync;
+  (*libc)->cudaMemcpyArrayToArray_fn = dce_cudaMemcpyArrayToArray;
+  (*libc)->cudaMemcpyAsync_fn = dce_cudaMemcpyAsync;
+  (*libc)->cudaMemcpyFromArray_fn = dce_cudaMemcpyFromArray;
+  (*libc)->cudaMemcpyFromArrayAsync_fn = dce_cudaMemcpyFromArrayAsync;
+  (*libc)->cudaMemcpyFromSymbol_fn = dce_cudaMemcpyFromSymbol;
+  (*libc)->cudaMemcpyFromSymbolAsync_fn = dce_cudaMemcpyFromSymbolAsync;
+  (*libc)->cudaMemcpyToArray_fn = dce_cudaMemcpyToArray;
+  (*libc)->cudaMemcpyToArrayAsync_fn = dce_cudaMemcpyToArrayAsync;
+  (*libc)->cudaMemcpyToSymbol_fn = dce_cudaMemcpyToSymbol;
+  (*libc)->cudaMemcpyToSymbolAsync_fn = dce_cudaMemcpyToSymbolAsync;
+  (*libc)->cudaMemset_fn = dce_cudaMemset;
+  (*libc)->cudaMemset2D_fn = dce_cudaMemset2D;
+  (*libc)->cudaMemset3D_fn = dce_cudaMemset3D;
+
+  // cudart-device.cc
+  (*libc)->cudaChooseDevice_fn = dce_cudaChooseDevice;
+  (*libc)->cudaGetDevice_fn = dce_cudaGetDevice;
+  (*libc)->cudaGetDeviceCount_fn = dce_cudaGetDeviceCount;
+  (*libc)->cudaGetDeviceProperties_fn = dce_cudaGetDeviceProperties;
+  (*libc)->cudaSetDevice_fn = dce_cudaSetDevice;
+  (*libc)->cudaSetDeviceFlags_fn = dce_cudaSetDeviceFlags;
+  (*libc)->cudaSetValidDevices_fn = dce_cudaSetValidDevices;
+  (*libc)->cudaDeviceReset_fn = dce_cudaDeviceReset;
+
+  // cudart-error.cc
+  (*libc)->cudaGetErrorString_fn = dce_cudaGetErrorString;
+  (*libc)->cudaGetLastError_fn = dce_cudaGetLastError;
+
+  // cudart-event.cc
+  (*libc)->cudaEventCreate_fn = dce_cudaEventCreate;
+  (*libc)->cudaEventCreateWithFlags_fn = dce_cudaEventCreateWithFlags;
+  (*libc)->cudaEventDestroy_fn = dce_cudaEventDestroy;
+  (*libc)->cudaEventElapsedTime_fn = dce_cudaEventElapsedTime;
+  (*libc)->cudaEventQuery_fn = dce_cudaEventQuery;
+  (*libc)->cudaEventRecord_fn = dce_cudaEventRecord;
+  (*libc)->cudaEventSynchronize_fn = dce_cudaEventSynchronize;
+
+  // cudart-execution.cc
+  (*libc)->cudaConfigureCall_fn = dce_cudaConfigureCall;
+  #ifndef CUDART_VERSION
+  #error CUDART_VERSION not defined
+  #endif
+  #if CUDART_VERSION >= 2030
+  (*libc)->cudaFuncGetAttributes_fn = dce_cudaFuncGetAttributes;
+  #endif
+  (*libc)->cudaLaunch_fn = dce_cudaLaunch;
+  (*libc)->cudaSetDoubleForDevice_fn = dce_cudaSetDoubleForDevice;
+  (*libc)->cudaSetDoubleForHost_fn = dce_cudaSetDoubleForHost;
+  (*libc)->cudaSetupArgument_fn = dce_cudaSetupArgument;
+
+  // cudart-internal.cc
+  (*libc)->__cudaRegisterFatBinary_fn = dce___cudaRegisterFatBinary;
+  (*libc)->__cudaUnregisterFatBinary_fn = dce___cudaUnregisterFatBinary;
+  (*libc)->__cudaRegisterFunction_fn = dce___cudaRegisterFunction;
+  (*libc)->__cudaRegisterVar_fn = dce___cudaRegisterVar;
+  (*libc)->__cudaRegisterShared_fn = dce___cudaRegisterShared;
+  (*libc)->__cudaRegisterSharedVar_fn = dce___cudaRegisterSharedVar;
+  (*libc)->__cudaRegisterTexture_fn = dce___cudaRegisterTexture;
+  (*libc)->__cudaSynchronizeThreads_fn = dce___cudaSynchronizeThreads;
+  (*libc)->__cudaTextureFetch_fn = dce___cudaTextureFetch;
+
+  // cudart-stream.cc
+  (*libc)->cudaStreamCreate_fn = dce_cudaStreamCreate;
+  (*libc)->cudaStreamDestroy_fn = dce_cudaStreamDestroy;
+  (*libc)->cudaStreamQuery_fn = dce_cudaStreamQuery;
+  (*libc)->cudaStreamSynchronize_fn = dce_cudaStreamSynchronize;
+
+  // cudart-texture.cc
+  (*libc)->cudaBindTexture_fn = dce_cudaBindTexture;
+  (*libc)->cudaBindTexture2D_fn = dce_cudaBindTexture2D;
+  (*libc)->cudaBindTextureToArray_fn = dce_cudaBindTextureToArray;
+  (*libc)->cudaGetChannelDesc_fn = dce_cudaGetChannelDesc;
+  (*libc)->cudaGetTextureAlignmentOffset_fn = dce_cudaGetTextureAlignmentOffset;
+  (*libc)->cudaGetTextureReference_fn = dce_cudaGetTextureReference;
+  (*libc)->cudaUnbindTexture_fn = dce_cudaUnbindTexture;
+
+  // cudart-thread.cc
+  (*libc)->cudaThreadSynchronize_fn = dce_cudaThreadSynchronize;
+  (*libc)->cudaThreadExit_fn = dce_cudaThreadExit;
+
+  // cudart-version.cc
+  (*libc)->cudaDriverGetVersion_fn = dce_cudaDriverGetVersion;
+  (*libc)->cudaRuntimeGetVersion_fn = dce_cudaRuntimeGetVersion;
+
+
 }
 } // extern "C"
 

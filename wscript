@@ -685,6 +685,44 @@ def build(bld):
         'model/linux/linux-sctp-socket-factory-impl.cc',
         'model/linux/linux-sctp6-socket-factory.cc',
         'model/linux/linux-sctp6-socket-factory-impl.cc',
+        'model/cuda-utils/cuda-buffer.cc',
+        'model/cuda-utils/cuda-communicator.cc',
+        'model/cuda-utils/cuda-config-file.cc',
+        'model/cuda-utils/cuda-util.cc',
+        'model/cuda-utils/dce-unix-communicator.cc',
+        'model/cuda-utils/dce-tap-communicator.cc',
+        'model/cuda-utils/cuda-mutex.cc',
+        'model/cuda-utils/cuda-observable.cc',
+        'model/cuda-utils/cuda-observer.cc',
+        'model/cuda-utils/cuda-result.cc',
+        'model/cuda-utils/cuda-subprocess.cc',
+        'model/cuda-utils/cuda-thread.cc',
+        'model/cuda-utils/util.cc',
+        'model/cuda-frontend/frontend.cc',
+        'model/cuda-frontend/cudadr.cc',
+        'model/cuda-frontend/cudadr-frontend.cc',
+        'model/cuda-frontend/cudadr-context.cc',
+        'model/cuda-frontend/cudadr-device.cc',
+        'model/cuda-frontend/cudadr-event.cc',
+        'model/cuda-frontend/cudadr-execution.cc',
+        'model/cuda-frontend/cudadr-initialization.cc',
+        'model/cuda-frontend/cudadr-memory.cc',
+        'model/cuda-frontend/cudadr-module.cc',
+        'model/cuda-frontend/cudadr-stream.cc',
+        'model/cuda-frontend/cudadr-texture.cc',
+        'model/cuda-frontend/cudadr-version.cc',
+        'model/cuda-frontend/cudart.cc',
+        'model/cuda-frontend/cudart-frontend.cc',
+        'model/cuda-frontend/cudart-device.cc',
+        'model/cuda-frontend/cudart-error.cc',
+        'model/cuda-frontend/cudart-event.cc',
+        'model/cuda-frontend/cudart-execution.cc',
+        'model/cuda-frontend/cudart-internal.cc',
+        'model/cuda-frontend/cudart-memory.cc',
+        'model/cuda-frontend/cudart-stream.cc',
+        'model/cuda-frontend/cudart-texture.cc',
+        'model/cuda-frontend/cudart-thread.cc',
+        'model/cuda-frontend/cudart-version.cc',
         # helper.
         'helper/ipv4-dce-routing-helper.cc',
         'helper/dce-manager-helper.cc',
@@ -717,6 +755,17 @@ def build(bld):
         'model/linux/linux-dccp6-socket-factory.h',
         'model/linux/linux-sctp-socket-factory.h',
         'model/linux/linux-sctp6-socket-factory.h',
+        'model/cuda-frontend/frontend.h',
+        'model/cuda-frontend/cudadr.h',
+        'model/cuda-frontend/cudadr-frontend.h',
+        'model/cuda-frontend/cudart.h',
+        'model/cuda-frontend/cudart-frontend.h',
+        'model/cuda-frontend/frontend.h',
+        'model/cuda-utils/cuda-util.h',
+        'model/cuda-utils/cuda-buffer.h',
+        'model/cuda-utils/cuda-config-file.h',
+        'model/cuda-utils/cuda-communicator.h',
+        'model/cuda-utils/util.h',
         'helper/dce-manager-helper.h',
         'helper/dce-application-helper.h',
         'helper/ccn-client-helper.h',
@@ -772,12 +821,13 @@ def build(bld):
     
     bld.program(source='utils/dcemakeversion.c', 
                 name='dcemakeversion',
-                target='dcemakeversion', cflags = [ '-g'], linkflags    = ['-lpthread', '-lrt', '-lm', '-ldl'])
+                target='dcemakeversion', cflags = [ '-g'], linkflags    = ['-lpthread', '-lrt', '-lm', '-ldl', '-L/usr/local/cuda/lib64', '-lcudart', '-L/usr/lib/x86_64-linux-gnu', '-lcuda'])
 
     bld(source=['dcemakeversion','model/libc-ns3.version' , 'model/libpthread-ns3.version' ,
-                'model/librt-ns3.version', 'model/libm-ns3.version', 'model/libdl-ns3.version'],
-        target=['model/libc.version','model/libpthread.version','model/librt.version','model/libm.version','model/libdl.version'],
-        rule='${SRC[0].abspath()} ${SRC[1].abspath()}  ${SRC[2].abspath()}  ${SRC[3].abspath()} ${SRC[4].abspath()}  ${SRC[5].abspath()}')
+                'model/librt-ns3.version', 'model/libm-ns3.version', 'model/libdl-ns3.version',
+                'model/libcudart-ns3.version','model/libcuda-ns3.version'],
+        target=['model/libc.version','model/libpthread.version','model/librt.version','model/libm.version','model/libdl.version','model/libcudart.version','model/libcuda.version'],
+        rule='${SRC[0].abspath()} ${SRC[1].abspath()}  ${SRC[2].abspath()}  ${SRC[3].abspath()} ${SRC[4].abspath()}  ${SRC[5].abspath()} ${SRC[6].abspath()} ${SRC[7].abspath()}')
 
     bld.add_group('dce_use_version_files')
 
@@ -824,6 +874,24 @@ def build(bld):
               linkflags=['-nostdlib', '-fno-profile-arcs',
                          '-Wl,--version-script=' + os.path.join('model', 'libdl.version'),
                          '-Wl,-soname=libdl.so.2'])
+
+    # The very small libcudart used to replace the glibc
+    # and forward to the dce_* code
+    bld.shlib(source = ['model/libc.cc', 'model/libc-setup.cc'],
+              target='lib/cudart-ns3', cxxflags=['-g', '-fno-profile-arcs', '-fno-test-coverage'],
+              defines=['LIBSETUP=libcudart_setup'],
+              linkflags=['-nostdlib', '-fno-profile-arcs',
+                         '-Wl,--version-script=' + os.path.join('model', 'libcudart.version'),
+                         '-Wl,-soname=libcudart.so.7.5'])
+
+    # The very small libcuda used to replace the glibc
+    # and forward to the dce_* code
+    bld.shlib(source = ['model/libc.cc', 'model/libc-setup.cc'],
+              target='lib/cuda-ns3', cxxflags=['-g', '-fno-profile-arcs', '-fno-test-coverage'],
+              defines=['LIBSETUP=libcuda_setup'],
+              linkflags=['-nostdlib', '-fno-profile-arcs',
+                         '-Wl,--version-script=' + os.path.join('model', 'libcuda.version'),
+                         '-Wl,-soname=libcuda.so.1'])
 
     bld.add_subdirs(['utils'])
     bld.recurse('bindings/python')
