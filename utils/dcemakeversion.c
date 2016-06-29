@@ -208,6 +208,8 @@ main (int argc, char *argv[])
   createversion (seek4Lib ("librt.so"), argv[++i], "model/librt.version");
   createversion (seek4Lib ("libm.so"), argv[++i], "model/libm.version");
   createversion (seek4Lib ("libdl.so"), argv[++i], "model/libdl.version");
+  createversion (seek4Lib ("libcudart.so"), argv[++i], "model/libcudart.version");
+  createversion (seek4Lib ("libcuda.so"), argv[++i], "model/libcuda.version");
 
   return 0;
 }
