@@ -170,9 +170,8 @@ int main (int argc, char *argv[])
 	  dce.AddArgument ("matrixmult.py");
 	  break;
   case PIDIGITS_PYTHON:
-          std::cout << "pidigits_pypy" << "\t";
-	  dce.SetBinary ("pypy-c");
-	  //dce.SetBinary ("python2-dce");
+          std::cout << "pidigits_python" << "\t";
+	  dce.SetBinary ("python2-dce");
 	  dce.ResetArguments ();
 	  dce.ResetEnvironment ();
 	  dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu");
