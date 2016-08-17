@@ -692,11 +692,22 @@ NATIVE (fabs)
 NATIVE (copysign)
 NATIVE (sin)
 NATIVE (cos)
+NATIVE (acos)
 NATIVE (tan)
 NATIVE (log1p)
 NATIVE (log1pf)
 NATIVE (log1pl)
 NATIVE (atan2)
+NATIVE (sinh)
+NATIVE (asin)
+NATIVE (asinh)
+NATIVE (cosh)
+NATIVE (acosh)
+NATIVE (atan)
+NATIVE (atanh)
+NATIVE (tanh)
+NATIVE (expm1)
+NATIVE (sqrt)
 
 // libio.h
 NATIVE (__uflow)
@@ -709,6 +720,10 @@ DCE (dlsym)
 DCE (dlclose)
 NATIVE (dlerror)
 NATIVE (dladdr)
+
+// fenv.h
+NATIVE (fetestexcept)
+NATIVE (feclearexcept)
 
 #undef DCE
 #undef DCET

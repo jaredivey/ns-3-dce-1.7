@@ -105,6 +105,8 @@
 #include <sys/syscall.h>
 #include <iconv.h>
 #include <sys/file.h>
+#include <readline/readline.h>
+#include <fenv.h>
 
 extern void __cxa_finalize (void *d);
 extern int __cxa_atexit (void (*func)(void *), void *arg, void *d);

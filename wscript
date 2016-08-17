@@ -110,6 +110,7 @@ def configure(conf):
          
     conf.env.prepend_value('LINKFLAGS', '-Wl,--no-as-needed')
     conf.env.append_value('LINKFLAGS', '-pthread')
+    #conf.env.append_value('LINKFLAGS', '-lreadline')
     conf.check (lib='dl', mandatory = True)
     conf.check_cc(fragment='int main() {__get_cpu_features();}\n', msg='Checking for glibc get_cpu_features', define_name='HAVE_GETCPUFEATURES', mandatory=False)
     conf.check_cc(fragment='int main() {__secure_getenv("test");}\n', msg='Checking for glibc __secure_getenv', define_name='HAVE___SECURE_GETENV', mandatory=False)
