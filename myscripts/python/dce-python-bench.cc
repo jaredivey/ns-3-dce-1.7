@@ -37,7 +37,9 @@ enum BENCHMARK
   PING_GCC,
   PING_CLANG,
   PING_PYTHON,
-  PING_JAVA
+  PING_JAVA,
+  PYCUDA_DEMO,
+  PYCUDA_DUMP
 } BENCHMARK;
 
 unsigned long
@@ -247,6 +249,34 @@ int main (int argc, char *argv[])
       dce.AddArgument ("127.0.0.1");
       dce.AddArgument ("56");
       dce.AddArgument ("1000");
+	  break;
+  case PYCUDA_DEMO:
+          std::cout << "pycuda_demo" << "\t";
+	  dce.SetBinary ("python2-dce");
+	  dce.ResetArguments ();
+	  dce.ResetEnvironment ();
+	  dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu:/pycuda:/python2.7/lib-dynload");
+	  dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu:/pycuda");
+	  dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu:/pycuda:/python2.7/lib-dynload");
+	  //dce.AddArgument ("-S");
+	  //dce.AddArgument ("-u");
+	  //dce.AddArgument ("-v");
+	  //dce.AddArgument ("-d");
+	  dce.AddArgument ("demo.py");
+	  break;
+  case PYCUDA_DUMP:
+          std::cout << "pycuda_dump" << "\t";
+	  dce.SetBinary ("python2-dce");
+	  dce.ResetArguments ();
+	  dce.ResetEnvironment ();
+	  dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu:/pycuda:/python2.7/lib-dynload");
+	  dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu:/pycuda");
+	  dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu:/pycuda:/python2.7/lib-dynload");
+	  //dce.AddArgument ("-S");
+	  //dce.AddArgument ("-u");
+	  //dce.AddArgument ("-v");
+	  //dce.AddArgument ("-d");
+	  dce.AddArgument ("dump_properties.py");
 	  break;
   default:
 	  std::cout << "Invalid language/compiler choice" << std::endl;
