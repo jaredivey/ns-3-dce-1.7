@@ -131,6 +131,7 @@ extern char * __strcpy_chk (char *__restrict __dest,
 
 extern void * __rawmemchr (const void *s, int c);
 extern void * __memcpy_chk(void * dest, const void * src, size_t len, size_t destlen);
+extern char * __strncpy_chk(char * s1, const char * s2, size_t n, size_t s1len);
 
 // from glibc's stdio.h
 extern int __sprintf_chk (char *, int, size_t, const char *, ...) __THROW;

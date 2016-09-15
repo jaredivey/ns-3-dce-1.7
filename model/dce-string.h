@@ -17,6 +17,7 @@ char * dce_strstr (const char *h, const char *n);
 void * dce_memcpy (void *dest, const void *source, size_t num);
 void * dce___rawmemchr (const void *s, int c);
 void * dce___memcpy_chk(void * dest, const void * src, size_t len, size_t destlen);
+char * dce___strncpy_chk(char * s1, const char * s2, size_t n, size_t s1len);
 
 #ifdef __cplusplus
 }
