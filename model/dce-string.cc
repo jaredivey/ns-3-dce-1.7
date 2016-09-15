@@ -51,3 +51,8 @@ void * dce___memcpy_chk(void * dest, const void * src, size_t len, size_t destle
 {
   return memcpy(dest, src, len);
 }
+
+char * dce___strncpy_chk(char * s1, const char * s2, size_t n, size_t s1len)
+{
+  return strncpy(s1, s2, n);
+}
