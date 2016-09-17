@@ -41,9 +41,6 @@ ElfCache::ElfCache (std::string directory, uint32_t uid)
   overriden.from = "libcuda.so.1";
   overriden.to = "libcuda-ns3.so";
   m_overriden.push_back (overriden);
-  overriden.from = "libpython2.7.so";
-  overriden.to = "libpython2.7-ns3.so";
-  m_overriden.push_back (overriden);
 }
 
 std::string
