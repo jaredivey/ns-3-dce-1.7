@@ -94,6 +94,7 @@ struct Libc
   CUresult (*cuModuleGetGlobal_fn)(CUdeviceptr *dptr, size_t *bytes, CUmodule hmod, const char *name);
   CUresult (*cuModuleGetTexRef_fn)(CUtexref *pTexRef, CUmodule hmod, const char *name);
   CUresult (*cuModuleLoadDataEx_fn)(CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
+  CUresult (*cuModuleUnload_fn)(CUmodule hmod);
 
   // cudadr-stream.cc
   CUresult (*cuStreamCreate_fn)(CUstream *phStream, unsigned int Flags);

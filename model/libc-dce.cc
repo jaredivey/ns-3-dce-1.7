@@ -261,6 +261,7 @@ void libc_dce (struct Libc **libc)
   (*libc)->cuModuleGetGlobal_fn = dce_cuModuleGetGlobal;
   (*libc)->cuModuleGetTexRef_fn = dce_cuModuleGetTexRef;
   (*libc)->cuModuleLoadDataEx_fn = dce_cuModuleLoadDataEx;
+  (*libc)->cuModuleUnload_fn = dce_cuModuleUnload;
 
   // cudadr-stream.cc
   (*libc)->cuStreamCreate_fn = dce_cuStreamCreate;

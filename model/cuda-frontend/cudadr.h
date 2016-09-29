@@ -110,6 +110,7 @@ CUresult dce_cuModuleGetFunction(CUfunction *hfunc, CUmodule hmod, const char *n
 CUresult dce_cuModuleGetGlobal(CUdeviceptr *dptr, size_t *bytes, CUmodule hmod, const char *name);
 CUresult dce_cuModuleGetTexRef(CUtexref *pTexRef, CUmodule hmod, const char *name);
 CUresult dce_cuModuleLoadDataEx(CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
+CUresult dce_cuModuleUnload(CUmodule hmod);
 
 // cudadr-stream.cc
 CUresult dce_cuStreamCreate(CUstream *phStream, unsigned int Flags);
