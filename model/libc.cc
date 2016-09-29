@@ -404,6 +404,11 @@ CUresult cuModuleLoadDataEx(CUmodule *module, const void *image, unsigned int nu
 	return g_libc.cuModuleLoadDataEx_fn(module, image, numOptions, options, optionValues);
 }
 
+CUresult cuModuleUnload(CUmodule hmod)
+{
+	return g_libc.cuModuleUnload_fn(hmod);
+}
+
 CUresult cuStreamCreate(CUstream *phStream, unsigned int Flags)
 {
 	return g_libc.cuStreamCreate_fn(phStream, Flags);

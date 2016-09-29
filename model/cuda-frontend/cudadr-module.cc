@@ -132,7 +132,9 @@ CUresult dce_cuModuleLoadFatBinary(CUmodule *module, const void *fatCubin) {
 }
 
 CUresult dce_cuModuleUnload(CUmodule hmod) {
-    // FIXME: implement
-    cerr << "*** Error: cuModuleUnload not yet implemented!" << endl;
-    return (CUresult) 1;
+	uint32_t nodeId = UtilsGetNodeId ();
+    CudaDrFrontend::Prepare(nodeId);
+    CudaDrFrontend::AddDevicePointerForArguments((void*) hmod, nodeId);
+    CudaDrFrontend::Execute("cuModuleUnload", NULL, nodeId);
+    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }
