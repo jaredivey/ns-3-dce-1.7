@@ -375,8 +375,15 @@ PipeFd::Fxstat64 (int ver, struct ::stat64 *buf)
 int
 PipeFd::Fcntl (int cmd, unsigned long arg)
 {
+	std::cout << "fcntl: " << cmd << " on " << arg << std::endl;
   switch (cmd)
     {
+    case F_GETFD:
+      return 0;
+	  break;
+    case F_SETFD:
+      return 0;
+      break;
     case F_GETFL:
       return m_statusFlags;
       break;
