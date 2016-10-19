@@ -59,6 +59,7 @@ main (int argc, char *argv[])
   bool stp = false;
   bool verbose = false;
   bool trace = false;
+  bool nix = true;
 
   CommandLine cmd;
   cmd.AddValue ("switches", "Number of OpenFlow switches", nSwitches);
@@ -66,16 +67,18 @@ main (int argc, char *argv[])
   cmd.AddValue ("stp", "Use spanning tree with controller", stp);
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
   cmd.AddValue ("trace", "Tracing traffic to files", trace);
+  cmd.AddValue ("nix", "Use NIx controller app", nix);
   cmd.Parse (argc, argv);
 
   if (verbose)
     {
       LogComponentEnable ("ChainOFSwitch13", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
     }
 
   // Enabling Checksum computations
@@ -185,16 +188,16 @@ main (int argc, char *argv[])
   {
 	  dce.AddArgument ("--verbose");
   }
-  if (stp)
+  if (nix)
   {
-	  dce.AddArgument("ryu/app/simple_switch_stp_13.py");
+	  dce.AddArgument ("ryu/app/simple_switch_13_demo.py");
   }
   else
   {
-	  dce.AddArgument ("ryu/app/simple_switch_13.py");
+	  dce.AddArgument ("ryu/app/simple_switch_13_stp.py");
   }
-  dce.AddArgument ("--ofp-tcp-listen-port");
-  dce.AddArgument ("6653");
+  //dce.AddArgument ("--ofp-tcp-listen-port");
+  //dce.AddArgument ("6653");
 
   apps.Add (dce.Install (of13ControllerNode));
   apps.Start (Seconds (0.0));
@@ -205,7 +208,7 @@ main (int argc, char *argv[])
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (h1Addr, 8080));
   senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
   ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));
-  senderApp.Start (Seconds (1));
+  senderApp.Start (Seconds (2));
   PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 8080));
   ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
   sinkApp.Start (Seconds (0));
@@ -229,7 +232,7 @@ main (int argc, char *argv[])
   monitor.Install (hosts);
 
   // Run the simulation for 30 seconds
-  Simulator::Stop (Seconds (30));
+  Simulator::Stop (Seconds (10));
   Simulator::Run ();
   Simulator::Destroy ();
 
