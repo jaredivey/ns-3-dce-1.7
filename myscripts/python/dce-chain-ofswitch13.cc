@@ -72,10 +72,8 @@ main (int argc, char *argv[])
 
   if (verbose)
     {
-      LogComponentEnable ("ChainOFSwitch13", LOG_LEVEL_ALL);
+      LogComponentEnable ("DceChainOFSwitch13", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
@@ -190,11 +188,11 @@ main (int argc, char *argv[])
   }
   if (nix)
   {
-	  dce.AddArgument ("ryu/app/simple_switch_13_demo.py");
+	  dce.AddArgument ("ryu/app/nix_mpls.py");
   }
   else
   {
-	  dce.AddArgument ("ryu/app/simple_switch_13_stp.py");
+	  dce.AddArgument ("ryu/app/nix_simple.py");
   }
   //dce.AddArgument ("--ofp-tcp-listen-port");
   //dce.AddArgument ("6653");
@@ -232,7 +230,7 @@ main (int argc, char *argv[])
   monitor.Install (hosts);
 
   // Run the simulation for 30 seconds
-  Simulator::Stop (Seconds (10));
+  Simulator::Stop (Seconds (4));
   Simulator::Run ();
   Simulator::Destroy ();
 

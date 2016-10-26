@@ -46,6 +46,11 @@
 
 using namespace ns3;
 
+typedef struct timeval TIMER_TYPE;
+#define TIMER_NOW(_t) gettimeofday (&_t,NULL);
+#define TIMER_SECONDS(_t) ((double)(_t).tv_sec + (_t).tv_usec * 1e-6)
+#define TIMER_DIFF(_t1, _t2) (TIMER_SECONDS (_t1) - TIMER_SECONDS (_t2))
+
 NS_LOG_COMPONENT_DEFINE ("DceCampusOFSwitch13");
 
 enum CONN_TYPE {
@@ -56,11 +61,15 @@ enum CONN_TYPE {
 int
 main (int argc, char *argv[])
 {
+  TIMER_TYPE t0, t1, t2;
+  TIMER_NOW (t0);
+
   size_t nCampuses = 1;
-  size_t nClientsPer = 42;
+  size_t nClientsPer = 1;
   size_t connType = P2P;
   bool verbose = false;
   bool trace = false;
+  int nBytes = 2048;
 
   CommandLine cmd;
   cmd.AddValue ("campuses", "Number of campuses", nCampuses);
@@ -99,6 +108,11 @@ main (int argc, char *argv[])
   std::vector<Ipv4InterfaceContainer> net26bInterfaces;
   std::vector<Ipv4InterfaceContainer> net26cInterfaces;
   std::vector<NodeContainer> net3Clients;
+  std::vector<Ipv4InterfaceContainer> net30aInterfaces;
+  std::vector<Ipv4InterfaceContainer> net30bInterfaces;
+  std::vector<Ipv4InterfaceContainer> net32Interfaces;
+  std::vector<Ipv4InterfaceContainer> net33aInterfaces;
+  std::vector<Ipv4InterfaceContainer> net33bInterfaces;
   std::vector<NodeContainer> net0Switches;
   std::vector<NodeContainer> net1Switches;
   std::vector<NodeContainer> net2Switches;
@@ -130,6 +144,11 @@ main (int argc, char *argv[])
 	  net3c.Create(5*nClientsPer);
 	  net3Clients.push_back(net3c);
 	  internet.Install(net3Clients[i]);
+	  net30aInterfaces.push_back(Ipv4InterfaceContainer());
+	  net30bInterfaces.push_back(Ipv4InterfaceContainer());
+	  net32Interfaces.push_back(Ipv4InterfaceContainer());
+	  net33aInterfaces.push_back(Ipv4InterfaceContainer());
+	  net33bInterfaces.push_back(Ipv4InterfaceContainer());
 
 	  // Create the switch nodes; stack is installed in ofswitch13 API
 	  NodeContainer net0Sw;
@@ -173,6 +192,10 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer internetIpIfaces;
   ipv4switches.SetBase ("192.168.0.0", "255.255.0.0");
 
+  DceManagerHelper dceManager;
+  dceManager.Install (of13ControllerNodes);
+  ApplicationContainer apps; // Holds DCE controller apps
+
   std::vector< Ptr<OFSwitch13Helper> > of13Helpers;
   for (uint32_t z = 0; z < nCampuses; ++z)
   {
@@ -190,7 +213,7 @@ main (int argc, char *argv[])
 
       std::cout << "Creating Campus Network " << z << ":" << std::endl;
       // Create Net0
-      std::cout << "  SubNet [ 0";
+      std::cout << "  SubNet [ 0 ]" << std::endl;
       NetDeviceContainer ndc0[3];
       NetDeviceContainer of13SwitchPorts0 [3];
       for (uint32_t i = 0; i < 3; ++i)
@@ -210,7 +233,7 @@ main (int argc, char *argv[])
       }
 
       // Create Net1
-      std::cout << " 1";
+      std::cout << "  SubNet [ 1 ]" << std::endl;
       NetDeviceContainer ndc1[5];
       NetDeviceContainer of13SwitchPorts1 [2];
       for (uint32_t i = 0; i < 2; ++i)
@@ -228,6 +251,7 @@ main (int argc, char *argv[])
 
     	  of13SwitchPorts1[swIndex].Add(ndc1[i].Get(0));
     	  net1Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc1[i].Get(1))));
+    	  std::cout << swIndex << " " << net1Interfaces[z].GetAddress(i,0) << std::endl;
       }
       // Connect the 2 switches together
       NodeContainer tmp11;
@@ -276,7 +300,7 @@ main (int argc, char *argv[])
 	  of13SwitchPorts5.Add(ndc4_5.Get(1));
 
 	  // Create Net2
-	  std::cout << " 2";
+      std::cout << "  SubNet [ 2 ]" << std::endl;
       NetDeviceContainer of13SwitchPorts2 [7];
       for (uint32_t i = 0; i < 7; ++i)
       {
@@ -380,7 +404,7 @@ main (int argc, char *argv[])
 
 		  NodeContainer net2_3c;
 		  net2_3c.Add(net2Switches[z].Get(3));
-		  net2_3c.Add(net2Clients[z].Get(i+42));
+		  net2_3c.Add(net2Clients[z].Get(i+nClientsPer));
 		  NetDeviceContainer ndc2_3c;
 		  ndc2_3c = csma_100mb1ms.Install(net2_3c);
 		  of13SwitchPorts2[3].Add(ndc2_3c.Get(0));
@@ -388,7 +412,7 @@ main (int argc, char *argv[])
 
 		  NodeContainer net2_4c;
 		  net2_4c.Add(net2Switches[z].Get(4));
-		  net2_4c.Add(net2Clients[z].Get(i+42+42));
+		  net2_4c.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer));
 		  NetDeviceContainer ndc2_4c;
 		  ndc2_4c = csma_100mb1ms.Install(net2_4c);
 		  of13SwitchPorts2[4].Add(ndc2_4c.Get(0));
@@ -396,7 +420,7 @@ main (int argc, char *argv[])
 
 		  NodeContainer net2_5c;
 		  net2_5c.Add(net2Switches[z].Get(5));
-		  net2_5c.Add(net2Clients[z].Get(i+42+42+42));
+		  net2_5c.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer));
 		  NetDeviceContainer ndc2_5c;
 		  ndc2_5c = csma_100mb1ms.Install(net2_5c);
 		  of13SwitchPorts2[5].Add(ndc2_5c.Get(0));
@@ -404,7 +428,7 @@ main (int argc, char *argv[])
 
 		  NodeContainer net2_6ac;
 		  net2_6ac.Add(net2Switches[z].Get(6));
-		  net2_6ac.Add(net2Clients[z].Get(i+42+42+42+42));
+		  net2_6ac.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
 		  NetDeviceContainer ndc2_6ac;
 		  ndc2_6ac = csma_100mb1ms.Install(net2_6ac);
 		  of13SwitchPorts2[6].Add(ndc2_6ac.Get(0));
@@ -412,7 +436,7 @@ main (int argc, char *argv[])
 
 		  NodeContainer net2_6bc;
 		  net2_6bc.Add(net2Switches[z].Get(6));
-		  net2_6bc.Add(net2Clients[z].Get(i+42+42+42+42+42));
+		  net2_6bc.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
 		  NetDeviceContainer ndc2_6bc;
 		  ndc2_6bc = csma_100mb1ms.Install(net2_6bc);
 		  of13SwitchPorts2[6].Add(ndc2_6bc.Get(0));
@@ -420,7 +444,7 @@ main (int argc, char *argv[])
 
 		  NodeContainer net2_6cc;
 		  net2_6cc.Add(net2Switches[z].Get(6));
-		  net2_6cc.Add(net2Clients[z].Get(i+42+42+42+42+42+42));
+		  net2_6cc.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
 		  NetDeviceContainer ndc2_6cc;
 		  ndc2_6cc = csma_100mb1ms.Install(net2_6cc);
 		  of13SwitchPorts2[6].Add(ndc2_6cc.Get(0));
@@ -428,86 +452,275 @@ main (int argc, char *argv[])
 	  }
 
 	  // Create Net3
-	  std::cout << " 3";
+      std::cout << "  SubNet [ 3 ]" << std::endl;
       NetDeviceContainer of13SwitchPorts3 [4];
       for (uint32_t i = 0; i < 4; ++i)
       {
     	  of13SwitchPorts3[i] = NetDeviceContainer();
       }
 
+	  // Connect Net5 to Net3, switch 0
+	  NodeContainer net5_30;
+	  net5_30.Add(net5Switch[z].Get(0));
+	  net5_30.Add(net3Switches[z].Get(0));
+	  NetDeviceContainer ndc5_30;
+	  ndc5_30 = csma_1gb5ms.Install(net5_30);
+	  of13SwitchPorts5.Add(ndc5_30.Get(0));
+	  of13SwitchPorts3[0].Add(ndc5_30.Get(1));
+
+	  // Connect Net5 to Net3, switch 1
+	  NodeContainer net5_31;
+	  net5_31.Add(net5Switch[z].Get(0));
+	  net5_31.Add(net3Switches[z].Get(1));
+	  NetDeviceContainer ndc5_31;
+	  ndc5_31 = csma_1gb5ms.Install(net5_31);
+	  of13SwitchPorts5.Add(ndc5_31.Get(0));
+	  of13SwitchPorts3[1].Add(ndc5_31.Get(1));
+
+	  // Connect Net3 switches 0 and 1
+	  NodeContainer net3_01;
+	  net3_01.Add(net3Switches[z].Get(0));
+	  net3_01.Add(net3Switches[z].Get(1));
+	  NetDeviceContainer ndc3_01;
+	  ndc3_01 = csma_1gb5ms.Install(net3_01);
+	  of13SwitchPorts3[0].Add(ndc3_01.Get(0));
+	  of13SwitchPorts3[1].Add(ndc3_01.Get(1));
+
+	  // Connect Net3 switches 1 and 2
+	  NodeContainer net3_12;
+	  net3_12.Add(net3Switches[z].Get(1));
+	  net3_12.Add(net3Switches[z].Get(2));
+	  NetDeviceContainer ndc3_12;
+	  ndc3_12 = csma_1gb5ms.Install(net3_12);
+	  of13SwitchPorts3[1].Add(ndc3_12.Get(0));
+	  of13SwitchPorts3[2].Add(ndc3_12.Get(1));
+
+	  // Connect Net3 switches 1 and 3
+	  NodeContainer net3_13;
+	  net3_13.Add(net3Switches[z].Get(1));
+	  net3_13.Add(net3Switches[z].Get(3));
+	  NetDeviceContainer ndc3_13;
+	  ndc3_13 = csma_1gb5ms.Install(net3_13);
+	  of13SwitchPorts3[1].Add(ndc3_13.Get(0));
+	  of13SwitchPorts3[3].Add(ndc3_13.Get(1));
+
+	  // Connect Net3 switches 2 and 3
+	  NodeContainer net3_23;
+	  net3_23.Add(net3Switches[z].Get(2));
+	  net3_23.Add(net3Switches[z].Get(3));
+	  NetDeviceContainer ndc3_23;
+	  ndc3_23 = csma_1gb5ms.Install(net3_23);
+	  of13SwitchPorts3[2].Add(ndc3_23.Get(0));
+	  of13SwitchPorts3[3].Add(ndc3_23.Get(1));
+
+	  // Connect Net3 switch 0 with 42 clients (slots 0-41)
+	  // Connect Net3 switch 0 with 42 clients (slots 42-83)
+	  // Connect Net3 switch 2 with 42 clients (slots 84-125)
+	  // Connect Net3 switch 3 with 42 clients (slots 126-167)
+	  // Connect Net3 switch 3 with 42 clients
+	  for (uint32_t i = 0; i < nClientsPer; ++i)
+	  {
+		  NodeContainer net3_0ac;
+		  net3_0ac.Add(net3Switches[z].Get(0));
+		  net3_0ac.Add(net3Clients[z].Get(i));
+		  NetDeviceContainer ndc3_0ac;
+		  ndc3_0ac = csma_100mb1ms.Install(net3_0ac);
+		  of13SwitchPorts3[0].Add(ndc3_0ac.Get(0));
+    	  net30aInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_0ac.Get(1))));
+
+		  NodeContainer net3_0bc;
+		  net3_0bc.Add(net3Switches[z].Get(0));
+		  net3_0bc.Add(net3Clients[z].Get(i+nClientsPer));
+		  NetDeviceContainer ndc3_0bc;
+		  ndc3_0bc = csma_100mb1ms.Install(net3_0bc);
+		  of13SwitchPorts3[0].Add(ndc3_0bc.Get(0));
+    	  net30bInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_0bc.Get(1))));
+
+		  NodeContainer net3_2c;
+		  net3_2c.Add(net3Switches[z].Get(2));
+		  net3_2c.Add(net3Clients[z].Get(i+nClientsPer+nClientsPer));
+		  NetDeviceContainer ndc3_2c;
+		  ndc3_2c = csma_100mb1ms.Install(net3_2c);
+		  of13SwitchPorts3[2].Add(ndc3_2c.Get(0));
+    	  net32Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_2c.Get(1))));
+
+		  NodeContainer net3_3ac;
+		  net3_3ac.Add(net3Switches[z].Get(3));
+		  net3_3ac.Add(net3Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer));
+		  NetDeviceContainer ndc3_3ac;
+		  ndc3_3ac = csma_100mb1ms.Install(net3_3ac);
+		  of13SwitchPorts3[3].Add(ndc3_3ac.Get(0));
+    	  net33aInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_3ac.Get(1))));
+
+		  NodeContainer net3_3bc;
+		  net3_3bc.Add(net3Switches[z].Get(3));
+		  net3_3bc.Add(net3Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+		  NetDeviceContainer ndc3_3bc;
+		  ndc3_3bc = csma_100mb1ms.Install(net3_3bc);
+		  of13SwitchPorts3[3].Add(ndc3_3bc.Get(0));
+    	  net33bInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_3bc.Get(1))));
+	  }
+	  std::cout << std::endl;
 
       // Install ports on all switches
+	  std::cout << "Installing OpenFlow switches on Net 0... ";
       for (uint32_t i = 0; i < 3; ++i)
       {
     	  of13Helpers[z]->InstallSwitch (net0Switches[z].Get(i), of13SwitchPorts0 [i]);
       }
+      std::cout << "1... ";
+      for (uint32_t i = 0; i < 2; ++i)
+      {
+    	  of13Helpers[z]->InstallSwitch (net1Switches[z].Get(i), of13SwitchPorts1 [i]);
+      }
+      std::cout << "2... ";
+      for (uint32_t i = 0; i < 7; ++i)
+      {
+    	  of13Helpers[z]->InstallSwitch (net2Switches[z].Get(i), of13SwitchPorts2 [i]);
+      }
+      std::cout << "3... ";
+      for (uint32_t i = 0; i < 4; ++i)
+      {
+    	  of13Helpers[z]->InstallSwitch (net3Switches[z].Get(i), of13SwitchPorts3 [i]);
+      }
+      std::cout << "4... ";
+	  of13Helpers[z]->InstallSwitch (net4Switch[z].Get(0), of13SwitchPorts4);
+      std::cout << "5... ";
+	  of13Helpers[z]->InstallSwitch (net5Switch[z].Get(0), of13SwitchPorts5);
+      std::cout << std::endl;
 
       // Enable datapath logs
       if (verbose)
-        {
+      {
     	  of13Helpers[z]->EnableDatapathLogs ("all");
-        }
+      }
       // Enable pcap traces
       if (trace)
-        {
+      {
     	  of13Helpers[z]->EnableOpenFlowPcap ();
-        }
+      }
+
+      // Set up controller node application
+      DceApplicationHelper dce;
+
+      dce.SetStackSize (1<<20);
+      dce.SetBinary ("python2-dce");
+      dce.ResetArguments ();
+      dce.ResetEnvironment ();
+      dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu");
+      dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu");
+      dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu");
+      if (verbose)
+      {
+    	  dce.AddArgument ("-v");
+      }
+      dce.AddArgument ("ryu-manager");
+      if (verbose)
+      {
+    	  dce.AddArgument ("--verbose");
+      }
+      dce.AddArgument ("ryu/app/nix_mpls.py");
+      //dce.AddArgument ("--ofp-tcp-listen-port");
+      //dce.AddArgument ("6653");
+
+      apps.Add (dce.Install (of13ControllerNodes.Get(z)));
   }
-
-  DceManagerHelper dceManager;
-  dceManager.Install (of13ControllerNodes);
-
-  // Set up controller node application
-  DceApplicationHelper dce;
-  ApplicationContainer apps;
-
-  dce.SetStackSize (1<<20);
-  dce.SetBinary ("python2-dce");
-  dce.ResetArguments ();
-  dce.ResetEnvironment ();
-  dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu");
-  dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu");
-  dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu");
-  if (verbose)
-  {
-	  dce.AddArgument ("-v");
-  }
-  dce.AddArgument ("ryu-manager");
-  if (verbose)
-  {
-	  dce.AddArgument ("--verbose");
-  }
-  dce.AddArgument ("ryu/app/simple_switch_13_demo.py");
-  //dce.AddArgument ("--ofp-tcp-listen-port");
-  //dce.AddArgument ("6653");
-
-  apps.Add (dce.Install (of13ControllerNodes.Get(0)));
   apps.Start (Seconds (0.0));
 
-  // Send TCP traffic from host 0 to 1
-  //Ipv4Address h1Addr = internetIpIfaces.GetAddress (1);
-  //BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (h1Addr, 8080));
-  //senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
-  //ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));
-  //senderApp.Start (Seconds (2));
-  //PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 8080));
-  //ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
-  //sinkApp.Start (Seconds (0));
+  // Create Traffic Flows
+  std::cout << "Creating TCP Traffic Flows:" << std::endl;
+  Config::SetDefault ("ns3::OnOffApplication::MaxBytes",
+                      UintegerValue (nBytes));
+  Config::SetDefault ("ns3::OnOffApplication::OnTime",
+                      StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+  Config::SetDefault ("ns3::OnOffApplication::OffTime",
+                      StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+
+  ApplicationContainer sinkApps;
+  Ptr<UniformRandomVariable> urng = CreateObject<UniformRandomVariable> ();
+  int r1;
+  double r2;
+  for (uint32_t z = 0; z < nCampuses; ++z)
+    {
+      uint32_t x = z + 1;
+      if (z == nCampuses - 1)
+        {
+          x = 0;
+        }
+      // Subnet 2 LANs
+      std::cout << "  Campus Network " << z << " Flows [ Net2 ";
+	  for (uint32_t j = 0; j < nClientsPer; ++j)
+		{
+		  // Sinks
+		  PacketSinkHelper sinkHelper
+			("ns3::TcpSocketFactory",
+			InetSocketAddress (Ipv4Address::GetAny (), 9999));
+
+		  for (uint32_t i = 0; i < 7; ++i)
+		  {
+			  ApplicationContainer sinkApp = sinkHelper.Install (net2Clients[z].Get(j*nClientsPer+i));
+			  sinkApp.Start (Seconds (0.0));
+			  sinkApps.Add(sinkApp);
+		  }
+
+		  // Sources
+		  OnOffHelper client ("ns3::TcpSocketFactory", Address ());
+
+		  r1 = (int)(4 * urng->GetValue ()); r2 = 10 * urng->GetValue ();
+		  AddressValue remoteAddress22 (InetSocketAddress (net22Interfaces[z].GetAddress(j, 0), 9999));
+		  client.SetAttribute ("Remote", remoteAddress22);
+		  ApplicationContainer clientApp22;
+		  clientApp22.Add (client.Install (net1Servers[x].Get(r1)));
+		  clientApp22.Start (Seconds (r2));
+
+		  // Subnet 3 LANs
+		  std::cout << "Net3 ]" << std::endl;
+
+		  // Sinks
+		  for (uint32_t i = 0; i < 5; ++i)
+		  {
+			  ApplicationContainer sinkApp = sinkHelper.Install (net3Clients[z].Get(j*nClientsPer+i));
+			  sinkApp.Start (Seconds (0.0));
+			  sinkApps.Add(sinkApp);
+		  }
+
+		  // Sources
+		  r1 = (int)(4 * urng->GetValue ()); r2 = 10 * urng->GetValue ();
+		  AddressValue remoteAddress30a (InetSocketAddress (net30aInterfaces[z].GetAddress(j, 0), 9999));
+		  client.SetAttribute ("Remote", remoteAddress30a);
+		  ApplicationContainer clientApp30a;
+		  clientApp30a.Add (client.Install (net1Servers[x].Get(r1)));
+		  clientApp30a.Start (Seconds (r2));
+        }
+    }
 
   // Install FlowMonitor
   FlowMonitorHelper monitor;
-  //monitor.Install (hosts);
+  monitor.Install (net1Servers[0]);
+  monitor.Install (net2Clients[0]);
+  monitor.Install (net3Clients[0]);
 
-  // Run the simulation for 30 seconds
-  //Simulator::Stop (Seconds (10));
-  //Simulator::Run ();
-  //Simulator::Destroy ();
+  std::cout << "Running simulator..." << std::endl;
+  TIMER_NOW (t1);
+  Simulator::Stop(Seconds(10));
+  Simulator::Run ();
+  TIMER_NOW (t2);
+  std::cout << "Simulator finished: " << Simulator::Now().GetSeconds() << std::endl;
+  Simulator::Destroy ();
 
   // Transmitted bytes
-  //Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApp.Get (0));
-  //std::cout << "Total bytes sent from H0 to H1: " << sink->GetTotalRx () << std::endl;
+  for (uint32_t i = 0; i < sinkApps.GetN(); ++i)
+  {
+	  Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApps.Get (i));
+	  std::cout << "Total bytes sent: " << sink->GetTotalRx () << std::endl;
+  }
 
   // Dump FlowMonitor results
   monitor.SerializeToXmlFile ("FlowMonitor.xml", false, false);
-}
 
+  double d1 = TIMER_DIFF (t1, t0), d2 = TIMER_DIFF (t2, t1);
+  std::cout << "-----" << std::endl << "Runtime Stats:" << std::endl;
+  std::cout << "Simulator init time: " << d1 << std::endl;
+  std::cout << "Simulator run time: " << d2 << std::endl;
+  std::cout << "Total elapsed time: " << d1 + d2 << std::endl;
+}
