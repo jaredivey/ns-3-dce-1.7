@@ -5,7 +5,7 @@ import ns3waf
 def configure(conf):
 	conf.load('compiler_c')
 	conf.load('compiler_cxx')
-	ns3waf.check_modules(conf, ['core', 'internet', 'applications', 'point-to-point', 'layer2-p2p', 'mpi', 'sdn'], mandatory = True)
+	ns3waf.check_modules(conf, ['core', 'internet', 'applications', 'point-to-point', 'layer2-p2p', 'mpi', 'sdn', 'csma', 'ofswitch13', 'flow-monitor'], mandatory = True)
 	 
 def build(bld): 
 	bld.program(source='server.c', target='../../bin_dce/server_gcc', cflags = [ '-fPIC'], linkflags    = ['-pie', '-rdynamic'])
@@ -30,3 +30,5 @@ def build(bld):
  	bld.build_a_script('dce', needed = ['core', 'internet', 'network', 'point-to-point', 'layer2-p2p', 'sdn', 'applications', 'dce' ], target='bin/PADS-noController-debug-v2', source=['PADS-noController-debug-v2.cc'] )
  	bld.build_a_script('dce', needed = ['core', 'internet', 'network', 'point-to-point', 'layer2-p2p', 'sdn', 'applications', 'dce' ], target='bin/PADS-multiple-controller-v1', source=['PADS-multiple-controller-v1.cc'] )
  	bld.build_a_script('dce', needed = ['core', 'internet', 'network', 'point-to-point', 'layer2-p2p', 'sdn', 'applications', 'dce' ], target='bin/PADS-datacenter-v1', source=['PADS-datacenter-v1.cc'] )
+ 	bld.build_a_script('dce', needed = ['core', 'internet', 'network', 'point-to-point', 'csma', 'ofswitch13', 'applications', 'flow-monitor', 'dce' ], target='bin/dce-chain-ofswitch13', source=['dce-chain-ofswitch13.cc'] )
+ 	bld.build_a_script('dce', needed = ['core', 'internet', 'network', 'point-to-point', 'csma', 'ofswitch13', 'applications', 'flow-monitor', 'dce' ], target='bin/dce-campus-ofswitch13', source=['dce-campus-ofswitch13.cc'] )
