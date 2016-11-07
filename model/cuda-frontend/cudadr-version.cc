@@ -30,11 +30,12 @@ using namespace ns3;
 
 /*Return the Cuda Driver Version */
 CUresult dce_cuDriverGetVersion(int *driverVersion) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddHostPointerForArguments(driverVersion, 1, nodeId);
-    CudaDrFrontend::Execute("cuDriverGetVersion", NULL, nodeId);
-    if (CudaDrFrontend::Success(nodeId))
-        *driverVersion = *(CudaDrFrontend::GetOutputHostPointer<int>(1, nodeId));
-    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
+	return cuDriverGetVersion(driverVersion);
+//    uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddHostPointerForArguments(driverVersion, 1, nodeId);
+//    CudaDrFrontend::Execute("cuDriverGetVersion", NULL, nodeId);
+//    if (CudaDrFrontend::Success(nodeId))
+//        *driverVersion = *(CudaDrFrontend::GetOutputHostPointer<int>(1, nodeId));
+//    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }

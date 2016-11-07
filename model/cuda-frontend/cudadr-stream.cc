@@ -30,38 +30,42 @@ using namespace ns3;
 
 /*Create a stream.*/
 CUresult dce_cuStreamCreate(CUstream *phStream, unsigned int Flags) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddVariableForArguments(Flags, nodeId);
-    CudaDrFrontend::Execute("cuStreamCreate", NULL, nodeId);
-    if (CudaDrFrontend::Success(nodeId))
-        *phStream = (CUstream) (CudaDrFrontend::GetOutputDevicePointer(nodeId));
-    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
+	return cuStreamCreate(phStream, Flags);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddVariableForArguments(Flags, nodeId);
+//    CudaDrFrontend::Execute("cuStreamCreate", NULL, nodeId);
+//    if (CudaDrFrontend::Success(nodeId))
+//        *phStream = (CUstream) (CudaDrFrontend::GetOutputDevicePointer(nodeId));
+//    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }
 
 /*Destroys a stream.*/
 CUresult dce_cuStreamDestroy(CUstream hStream) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hStream, nodeId);
-    CudaDrFrontend::Execute("cuStreamDestroy", NULL, nodeId);
-    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
+	return cuStreamDestroy(hStream);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hStream, nodeId);
+//    CudaDrFrontend::Execute("cuStreamDestroy", NULL, nodeId);
+//    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
 }
 
 /*Determine status of a compute stream.*/
 CUresult dce_cuStreamQuery(CUstream hStream) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hStream, nodeId);
-    CudaDrFrontend::Execute("cuStreamQuery", NULL, nodeId);
-    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
+	return cuStreamQuery(hStream);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hStream, nodeId);
+//    CudaDrFrontend::Execute("cuStreamQuery", NULL, nodeId);
+//    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
 }
 
 /*Wait until a stream's tasks are completed.*/
 CUresult dce_cuStreamSynchronize(CUstream hStream) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hStream, nodeId);
-    CudaDrFrontend::Execute("cuStreamSynchronize", NULL, nodeId);
-    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
+	return cuStreamSynchronize(hStream);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hStream, nodeId);
+//    CudaDrFrontend::Execute("cuStreamSynchronize", NULL, nodeId);
+//    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
 }

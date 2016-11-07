@@ -782,7 +782,7 @@ def build(bld):
                                   headers=module_headers,
                                   use=uselib,
                                   includes=kernel_includes,
-                                  lib=['dl'])
+                                  lib=['dl', 'cuda'])
 #                                  lib=['dl','efence'])
 
     # make sure submodules built before building examples (that depend submodules)

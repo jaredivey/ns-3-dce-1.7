@@ -404,7 +404,7 @@ ElfLdd::Loop (std::string s, std::string f)
             }
           if (l->GetArch64 ())
             {
-              l->AddPath ("/lib64/:/usr/lib64/:/lib/x86_64-linux-gnu/:/usr/lib/x86_64-linux-gnu/:/lib/:/usr/lib/:/usr/local/cuda-7.5/lib64:/usr/local/cuda-7.5/extras/CUPTI/lib64:/usr/lib/nvidia-361");
+              l->AddPath ("/lib64/:/usr/lib64/:/lib/x86_64-linux-gnu/:/usr/lib/x86_64-linux-gnu/:/lib/:/usr/lib/:/usr/local/cuda-7.5/lib64:/usr/local/cuda-7.5/extras/CUPTI/lib64:/usr/lib/nvidia-367");
             }
           if (l->SearchLibs ())
             {

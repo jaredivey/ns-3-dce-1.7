@@ -30,9 +30,10 @@ using namespace ns3;
 
 /* Initialize the CUDA driver API */
 CUresult dce_cuInit(unsigned int flags) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddVariableForArguments(flags, nodeId);
-    CudaDrFrontend::Execute("cuInit", NULL, nodeId);
-    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
+	return cuInit(flags);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddVariableForArguments(flags, nodeId);
+//    CudaDrFrontend::Execute("cuInit", NULL, nodeId);
+//    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }

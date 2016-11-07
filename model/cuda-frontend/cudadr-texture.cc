@@ -30,101 +30,110 @@ using namespace ns3;
 
 /*Binds an address as a texture reference.*/
 CUresult dce_cuTexRefSetArray(CUtexref hTexRef, CUarray hArray, unsigned int Flags) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hArray, nodeId);
-    CudaDrFrontend::AddVariableForArguments(Flags, nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::Execute("cuTexRefSetArray", NULL, nodeId);
-    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
+	return cuTexRefSetArray(hTexRef, hArray, Flags);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hArray, nodeId);
+//    CudaDrFrontend::AddVariableForArguments(Flags, nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefSetArray", NULL, nodeId);
+//    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }
 
 /*Sets the addressing mode for a texture reference.*/
 CUresult dce_cuTexRefSetAddressMode(CUtexref hTexRef, int dim, CUaddress_mode am) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddVariableForArguments(dim, nodeId);
-    CudaDrFrontend::AddVariableForArguments(am, nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::Execute("cuTexRefSetAddressMode", NULL, nodeId);
-    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
+	return cuTexRefSetAddressMode(hTexRef, dim, am);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddVariableForArguments(dim, nodeId);
+//    CudaDrFrontend::AddVariableForArguments(am, nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefSetAddressMode", NULL, nodeId);
+//    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }
 
 /*Sets the filtering mode for a texture reference.*/
 CUresult dce_cuTexRefSetFilterMode(CUtexref hTexRef, CUfilter_mode fm) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddVariableForArguments(fm, nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::Execute("cuTexRefSetFilterMode", NULL, nodeId);
-    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
+	return cuTexRefSetFilterMode(hTexRef, fm);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddVariableForArguments(fm, nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefSetFilterMode", NULL, nodeId);
+//    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }
 
 /*Sets the flags for a texture reference.*/
 CUresult dce_cuTexRefSetFlags(CUtexref hTexRef, unsigned int Flags) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddVariableForArguments(Flags, nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::Execute("cuTexRefSetFlags", NULL, nodeId);
-    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
+	return cuTexRefSetFlags(hTexRef, Flags);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddVariableForArguments(Flags, nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefSetFlags", NULL, nodeId);
+//    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }
 
 /*Sets the format for a texture reference.*/
 CUresult dce_cuTexRefSetFormat(CUtexref hTexRef, CUarray_format fmt, int NumPackedComponents) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddVariableForArguments(NumPackedComponents, nodeId);
-    CudaDrFrontend::AddVariableForArguments(fmt, nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::Execute("cuTexRefSetFormat", NULL, nodeId);
-    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
+	return cuTexRefSetFormat(hTexRef, fmt, NumPackedComponents);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddVariableForArguments(NumPackedComponents, nodeId);
+//    CudaDrFrontend::AddVariableForArguments(fmt, nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefSetFormat", NULL, nodeId);
+//    return (CUresult) (CudaDrFrontend::GetExitCode(nodeId));
 }
 
 /*Gets the address associated with a texture reference. */
 CUresult dce_cuTexRefGetAddress(CUdeviceptr *pdptr, CUtexref hTexRef) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::Execute("cuTexRefGetAddress", NULL, nodeId);
-    if (CudaDrFrontend::Success(nodeId))
-        *pdptr = (CUdeviceptr) (CudaDrFrontend::GetOutputDevicePointer(nodeId));
-    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
+	return cuTexRefGetAddress(pdptr, hTexRef);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefGetAddress", NULL, nodeId);
+//    if (CudaDrFrontend::Success(nodeId))
+//        *pdptr = (CUdeviceptr) (CudaDrFrontend::GetOutputDevicePointer(nodeId));
+//    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
 }
 
 /*Gets the array bound to a texture reference.*/
 CUresult dce_cuTexRefGetArray(CUarray *phArray, CUtexref hTexRef) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::Execute("cuTexRefGetArray", NULL, nodeId);
-    if (CudaDrFrontend::Success(nodeId))
-        *phArray = (CUarray) (CudaDrFrontend::GetOutputDevicePointer(nodeId));
-    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
+	return cuTexRefGetArray(phArray, hTexRef);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefGetArray", NULL, nodeId);
+//    if (CudaDrFrontend::Success(nodeId))
+//        *phArray = (CUarray) (CudaDrFrontend::GetOutputDevicePointer(nodeId));
+//    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
 }
 
 /*Gets the flags used by a texture reference. */
 CUresult dce_cuTexRefGetFlags(unsigned int *pFlags, CUtexref hTexRef) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::Execute("cuTexRefGetFlags", NULL, nodeId);
-    if (CudaDrFrontend::Success(nodeId))
-        *pFlags = *(CudaDrFrontend::GetOutputHostPointer<size_t > (1, nodeId));
-    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
+	return cuTexRefGetFlags(pFlags, hTexRef);
+//	uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefGetFlags", NULL, nodeId);
+//    if (CudaDrFrontend::Success(nodeId))
+//        *pFlags = *(CudaDrFrontend::GetOutputHostPointer<size_t > (1, nodeId));
+//    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
 }
 
 /*Binds an address as a texture reference.*/
 CUresult dce_cuTexRefSetAddress(size_t *ByteOffset, CUtexref hTexRef, CUdeviceptr dptr, size_t bytes) {
-	uint32_t nodeId = UtilsGetNodeId ();
-    CudaDrFrontend::Prepare(nodeId);
-    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
-    CudaDrFrontend::AddVariableForArguments(dptr, nodeId);
-    CudaDrFrontend::AddVariableForArguments(bytes, nodeId);
-    CudaDrFrontend::Execute("cuTexRefSetAddress", NULL, nodeId);
-    if (CudaDrFrontend::Success(nodeId))
-        *ByteOffset = *(CudaDrFrontend::GetOutputHostPointer<size_t > (1, nodeId));
-    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
+	return cuTexRefSetAddress(ByteOffset, hTexRef, dptr, bytes);
+// uint32_t nodeId = UtilsGetNodeId ();
+//    CudaDrFrontend::Prepare(nodeId);
+//    CudaDrFrontend::AddDevicePointerForArguments((void*) hTexRef, nodeId);
+//    CudaDrFrontend::AddVariableForArguments(dptr, nodeId);
+//    CudaDrFrontend::AddVariableForArguments(bytes, nodeId);
+//    CudaDrFrontend::Execute("cuTexRefSetAddress", NULL, nodeId);
+//    if (CudaDrFrontend::Success(nodeId))
+//        *ByteOffset = *(CudaDrFrontend::GetOutputHostPointer<size_t > (1, nodeId));
+//    return (CUresult) CudaDrFrontend::GetExitCode(nodeId);
 }
 
 CUresult dce_cuTexRefGetAddressMode(CUaddress_mode *pam, CUtexref hTexRef, int dim) {
