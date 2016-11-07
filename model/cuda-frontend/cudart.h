@@ -36,7 +36,7 @@
 #ifndef _CUDART_H
 #define	_CUDART_H
 
-#include </usr/local/cuda/include/cuda_runtime_api.h>
+#include </usr/local/cuda-7.5/include/cuda_runtime_api.h>
 
 #include "ns3/utils.h"
 #include "ns3/cuda-util.h"

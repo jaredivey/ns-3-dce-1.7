@@ -26,7 +26,7 @@
 #ifndef CUDADRFRONTEND_H
 #define	CUDADRFRONTEND_H
 
-#include </usr/local/cuda/include/cuda_runtime_api.h>
+#include </usr/local/cuda-7.5/include/cuda_runtime_api.h>
 #include "ns3/cuda-util.h"
 #include "frontend.h"
 

@@ -29,10 +29,10 @@
 #include <cstring>
 #include <stdio.h>
 
-#include </usr/local/cuda/include/host_defines.h>
-#include </usr/local/cuda/include/builtin_types.h>
-#include </usr/local/cuda/include/driver_types.h>
-#include </usr/local/cuda/include/cuda.h>
+#include </usr/local/cuda-7.5/include/host_defines.h>
+#include </usr/local/cuda-7.5/include/builtin_types.h>
+#include </usr/local/cuda-7.5/include/driver_types.h>
+#include </usr/local/cuda-7.5/include/cuda.h>
 
 #include "ns3/utils.h"
 #include "ns3/cuda-util.h"

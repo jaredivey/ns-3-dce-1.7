@@ -5,13 +5,13 @@
 #define _SYS_SELECT_H
 #include <sys/types.h>
 #undef _SYS_SELECT_H
-#include </usr/local/cuda/include/cuda_runtime_api.h>
+#include </usr/local/cuda-7.5/include/cuda_runtime_api.h>
 #define _STDLIB_H
-#include </usr/local/cuda/include/cuda.h>
+#include </usr/local/cuda-7.5/include/cuda.h>
 #undef _STDLIB_H
-#include </usr/local/cuda/include/host_defines.h>
-#include </usr/local/cuda/include/builtin_types.h>
-#include </usr/local/cuda/include/driver_types.h>
+#include </usr/local/cuda-7.5/include/host_defines.h>
+#include </usr/local/cuda-7.5/include/builtin_types.h>
+#include </usr/local/cuda-7.5/include/driver_types.h>
 
 struct Libc
 {

@@ -39,7 +39,7 @@
 #include <iostream>
 #include <cstdlib>
 
-#include "/usr/local/cuda/include/__cudaFatFormat.h"
+#include "/usr/local/cuda-7.5/include/__cudaFatFormat.h"
 
 #include "cuda-buffer.h"
 

@@ -38,7 +38,7 @@
 #include <cstdio>
 #include <iostream>
 
-#include </usr/local/cuda/include/cuda.h>
+#include </usr/local/cuda-7.5/include/cuda.h>
 
 using namespace std;
 

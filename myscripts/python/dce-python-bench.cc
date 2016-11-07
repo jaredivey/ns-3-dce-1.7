@@ -94,6 +94,8 @@ int main (int argc, char *argv[])
   NodeContainer connNodes;
   connNodes.Create (1);
 
+  LogComponentEnable ("ElfLdd", LOG_LEVEL_INFO);
+
   DceManagerHelper dceManager;
 
   InternetStackHelper stack;
@@ -193,7 +195,7 @@ int main (int argc, char *argv[])
 	  dce.AddEnvironment ("PATH", "/:/numpy:/python2.7:/pox:/ryu");
 	  dce.AddEnvironment ("PYTHONHOME", "/:/numpy:/python2.7:/pox:/ryu");
 	  dce.AddEnvironment ("PYTHONPATH", "/:/numpy:/python2.7:/pox:/ryu");
-	  dce.AddArgument ("-S");
+	  //dce.AddArgument ("-S");
 	  dce.AddArgument ("threadtest.py");
 	  break;
   case PING_PYTHON:
@@ -259,9 +261,9 @@ int main (int argc, char *argv[])
 	  dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu:/pycuda");
 	  dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu:/pycuda:/python2.7/lib-dynload");
 	  //dce.AddArgument ("-S");
-	  //dce.AddArgument ("-u");
-	  //dce.AddArgument ("-v");
-	  //dce.AddArgument ("-d");
+	  dce.AddArgument ("-u");
+	  dce.AddArgument ("-v");
+	  dce.AddArgument ("-d");
 	  dce.AddArgument ("demo.py");
 	  break;
   case PYCUDA_DUMP:
@@ -273,9 +275,9 @@ int main (int argc, char *argv[])
 	  dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu:/pycuda");
 	  dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu:/pycuda:/python2.7/lib-dynload");
 	  //dce.AddArgument ("-S");
-	  //dce.AddArgument ("-u");
-	  //dce.AddArgument ("-v");
-	  //dce.AddArgument ("-d");
+	  dce.AddArgument ("-u");
+	  dce.AddArgument ("-v");
+	  dce.AddArgument ("-d");
 	  dce.AddArgument ("dump_properties.py");
 	  break;
   default:

@@ -733,6 +733,10 @@ NATIVE (feclearexcept)
 // sys/eventfd.h
 NATIVE (eventfd)
 
+// sched.h
+NATIVE (sched_get_priority_max)
+NATIVE (sched_get_priority_min)
+
 #undef DCE
 #undef DCET
 #undef DCE_EXPLICIT
