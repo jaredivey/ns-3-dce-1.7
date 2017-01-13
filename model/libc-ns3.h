@@ -116,7 +116,7 @@ DCE (rename)
 // STRING.H
 NATIVE (bzero)
 NATIVE (strerror)
-NATIVE (strerror_r)
+NATIVE_WITH_ALIAS2 (strerror_r, __xpg_strerror_r)
 NATIVE (strcoll)
 NATIVE (memset)
 //NATIVE (memcpy)
