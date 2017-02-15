@@ -157,8 +157,8 @@ public:
    * This method creates all of DCE related instances to run an applicaion
    * binary on nodes.
    */
-  void Install (NodeContainer nodes);
-  void Install (Ptr<Node> node);
+  void Install (NodeContainer nodes, double scalingFactor = 0.0);
+  void Install (Ptr<Node> node, double scalingFactor = 0.0);
 
   /**
    * \param p the name of path

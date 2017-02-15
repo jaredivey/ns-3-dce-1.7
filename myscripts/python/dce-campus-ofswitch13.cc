@@ -41,6 +41,8 @@
 #include "ns3/ofswitch13-module.h"
 #include "ns3/network-module.h"
 #include "ns3/dce-module.h"
+#include "ns3/tap-bridge-module.h"
+#include "ns3/rng-seed-manager.h"
 
 #include <vector>
 
@@ -58,6 +60,31 @@ enum CONN_TYPE {
 	P2P
 } CONN_TYPE;
 
+enum APP_TYPE {
+	SS,
+	FWM,
+	NMBFS,
+	NMUCS,
+	FWCM,
+	FWS,
+	NSBFS,
+	NSUCS,
+	FWCS
+};
+
+static const char *apps[] =
+{
+		"ss",
+		"fwm",
+		"nm-bfs",
+		"nm-ucs",
+		"fwcm",
+		"fws",
+		"ns-bfs",
+		"ns-ucs",
+		"fwcs"
+};
+
 int
 main (int argc, char *argv[])
 {
@@ -65,18 +92,28 @@ main (int argc, char *argv[])
   TIMER_NOW (t0);
 
   size_t nCampuses = 1;
-  size_t nClientsPer = 1;
-  size_t connType = P2P;
+  size_t nClientsPer = 8;
+  size_t connType = CSMA;
   bool verbose = false;
   bool trace = false;
-  int nBytes = 2048;
+  uint32_t app = 0;
+  bool realController = false;
+  size_t numFlows = 0;
+  uint32_t run = 0;
 
   CommandLine cmd;
   cmd.AddValue ("campuses", "Number of campuses", nCampuses);
   cmd.AddValue ("connType", "Type of connection between controller and switch", connType);
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
   cmd.AddValue ("trace", "Tracing traffic to files", trace);
+  cmd.AddValue ("app", "Which application to use", app);
+  cmd.AddValue ("realController", "Use external controller through TAP", realController);
+  cmd.AddValue ("numFlows", "Number of flows (x4) to transmit", numFlows);
+  cmd.AddValue ("run", "Adjust the run value", run);
   cmd.Parse (argc, argv);
+
+  std::cout << apps[app] << "\t" << realController << "\t" << numFlows << "\t";
+  RngSeedManager::SetRun(run);
 
   if (verbose)
     {
@@ -88,6 +125,10 @@ main (int argc, char *argv[])
     }
 
   // Enabling Checksum computations
+  if (realController)
+  {
+	  GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
+  }
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
   // Create controller first so its ID is 0 (i.e. will use files-0 space)
@@ -179,12 +220,12 @@ main (int argc, char *argv[])
   // Configure the CsmaHelper
   CsmaHelper csma_1gb5ms;
   csma_1gb5ms.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
-  csma_1gb5ms.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (5)));
+  csma_1gb5ms.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (1)));
   CsmaHelper csma_2gb200ms;
-  csma_2gb200ms.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("2Gbps")));
-  csma_2gb200ms.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (200)));
+  csma_2gb200ms.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
+  csma_2gb200ms.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (1)));
   CsmaHelper csma_100mb1ms;
-  csma_100mb1ms.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
+  csma_100mb1ms.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
   csma_100mb1ms.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (1)));
 
   // Initialize IPv4 host helpers
@@ -193,7 +234,7 @@ main (int argc, char *argv[])
   ipv4switches.SetBase ("192.168.0.0", "255.255.0.0");
 
   DceManagerHelper dceManager;
-  dceManager.Install (of13ControllerNodes);
+  dceManager.Install (of13ControllerNodes, 100);
   ApplicationContainer apps; // Holds DCE controller apps
 
   std::vector< Ptr<OFSwitch13Helper> > of13Helpers;
@@ -201,19 +242,19 @@ main (int argc, char *argv[])
   {
 	  // Set up controller
 	  of13Helpers.push_back(CreateObject<OFSwitch13Helper> ());
-	  if (connType == CSMA)
+	  if (realController)
 	  {
-		  of13Helpers[z]->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::SINGLECSMA));
+		  of13Helpers[z]->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDCSMA));
 	  }
-	  else if (connType == P2P)
+	  else
 	  {
 		  of13Helpers[z]->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDP2P));
 	  }
 	  of13Helpers[z]->InstallExternalController (of13ControllerNodes.Get(z));
 
-      std::cout << "Creating Campus Network " << z << ":" << std::endl;
+      //std::cout << "Creating Campus Network " << z << ":" << std::endl;
       // Create Net0
-      std::cout << "  SubNet [ 0 ]" << std::endl;
+      //std::cout << "  SubNet [ 0 ]" << std::endl;
       NetDeviceContainer ndc0[3];
       NetDeviceContainer of13SwitchPorts0 [3];
       for (uint32_t i = 0; i < 3; ++i)
@@ -233,7 +274,7 @@ main (int argc, char *argv[])
       }
 
       // Create Net1
-      std::cout << "  SubNet [ 1 ]" << std::endl;
+      //std::cout << "  SubNet [ 1 ]" << std::endl;
       NetDeviceContainer ndc1[5];
       NetDeviceContainer of13SwitchPorts1 [2];
       for (uint32_t i = 0; i < 2; ++i)
@@ -251,7 +292,7 @@ main (int argc, char *argv[])
 
     	  of13SwitchPorts1[swIndex].Add(ndc1[i].Get(0));
     	  net1Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc1[i].Get(1))));
-    	  std::cout << swIndex << " " << net1Interfaces[z].GetAddress(i,0) << std::endl;
+    	  //std::cout << swIndex << " " << net1Interfaces[z].GetAddress(i,0) << std::endl;
       }
       // Connect the 2 switches together
       NodeContainer tmp11;
@@ -300,7 +341,7 @@ main (int argc, char *argv[])
 	  of13SwitchPorts5.Add(ndc4_5.Get(1));
 
 	  // Create Net2
-      std::cout << "  SubNet [ 2 ]" << std::endl;
+      //std::cout << "  SubNet [ 2 ]" << std::endl;
       NetDeviceContainer of13SwitchPorts2 [7];
       for (uint32_t i = 0; i < 7; ++i)
       {
@@ -452,7 +493,7 @@ main (int argc, char *argv[])
 	  }
 
 	  // Create Net3
-      std::cout << "  SubNet [ 3 ]" << std::endl;
+      //std::cout << "  SubNet [ 3 ]" << std::endl;
       NetDeviceContainer of13SwitchPorts3 [4];
       for (uint32_t i = 0; i < 4; ++i)
       {
@@ -560,34 +601,34 @@ main (int argc, char *argv[])
 		  of13SwitchPorts3[3].Add(ndc3_3bc.Get(0));
     	  net33bInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_3bc.Get(1))));
 	  }
-	  std::cout << std::endl;
+	  //std::cout << std::endl;
 
       // Install ports on all switches
-	  std::cout << "Installing OpenFlow switches on Net 0... ";
+	  //std::cout << "Installing OpenFlow switches on Net 0... ";
       for (uint32_t i = 0; i < 3; ++i)
       {
     	  of13Helpers[z]->InstallSwitch (net0Switches[z].Get(i), of13SwitchPorts0 [i]);
       }
-      std::cout << "1... ";
+      //std::cout << "1... ";
       for (uint32_t i = 0; i < 2; ++i)
       {
     	  of13Helpers[z]->InstallSwitch (net1Switches[z].Get(i), of13SwitchPorts1 [i]);
       }
-      std::cout << "2... ";
+      //std::cout << "2... ";
       for (uint32_t i = 0; i < 7; ++i)
       {
     	  of13Helpers[z]->InstallSwitch (net2Switches[z].Get(i), of13SwitchPorts2 [i]);
       }
-      std::cout << "3... ";
+      //std::cout << "3... ";
       for (uint32_t i = 0; i < 4; ++i)
       {
     	  of13Helpers[z]->InstallSwitch (net3Switches[z].Get(i), of13SwitchPorts3 [i]);
       }
-      std::cout << "4... ";
+      //std::cout << "4... ";
 	  of13Helpers[z]->InstallSwitch (net4Switch[z].Get(0), of13SwitchPorts4);
-      std::cout << "5... ";
+      //std::cout << "5... ";
 	  of13Helpers[z]->InstallSwitch (net5Switch[z].Get(0), of13SwitchPorts5);
-      std::cout << std::endl;
+      //std::cout << std::endl;
 
       // Enable datapath logs
       if (verbose)
@@ -601,127 +642,333 @@ main (int argc, char *argv[])
       }
 
       // Set up controller node application
-      DceApplicationHelper dce;
-
-      dce.SetStackSize (1<<20);
-      dce.SetBinary ("python2-dce");
-      dce.ResetArguments ();
-      dce.ResetEnvironment ();
-      dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu");
-      dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu");
-      dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu");
-      if (verbose)
+      if (realController)
       {
-    	  dce.AddArgument ("-v");
+    	  // TapBridge to local machine
+    	  // The default configuration expects a controller on you local machine at port 6653
+    	  TapBridgeHelper tapBridge;
+    	  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
+    	  std::stringstream ss;
+    	  for (uint32_t tapIdx = 0; tapIdx < of13Helpers[z]->m_ctrlDevs.GetN(); ++tapIdx)
+    	  {
+    		  ss.str("");
+    		  ss << "ctrl" << tapIdx;
+        	  tapBridge.Install (of13ControllerNodes.Get(z),
+        			  of13Helpers[z]->m_ctrlDevs.Get(tapIdx),
+        			  StringValue (ss.str()));
+    	  }
       }
-      dce.AddArgument ("ryu-manager");
-      if (verbose)
+      else
       {
-    	  dce.AddArgument ("--verbose");
-      }
-      dce.AddArgument ("ryu/app/simple_switch_13_demo.py");
-      //dce.AddArgument ("--ofp-tcp-listen-port");
-      //dce.AddArgument ("6653");
+          DceApplicationHelper dce;
 
-      apps.Add (dce.Install (of13ControllerNodes.Get(z)));
+          dce.SetStackSize (1<<20);
+          dce.SetBinary ("python2-dce");
+          dce.ResetArguments ();
+          dce.ResetEnvironment ();
+          dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu");
+          dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu");
+          dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu");
+          if (verbose)
+          {
+        	  dce.AddArgument ("-v");
+          }
+          dce.AddArgument ("ryu-manager");
+          if (verbose)
+          {
+        	  dce.AddArgument ("--verbose");
+          }      switch (app)
+          {
+          case SS:
+        	  dce.AddArgument("ryu/app/simple_switch_13.py");
+        	  break;
+          case FWS:
+        	  dce.AddArgument("ryu/app/fw_simple.py");
+        	  break;
+          case FWM:
+        	  dce.AddArgument("ryu/app/fw_mpls.py");
+        	  break;
+          case NSBFS:
+        	  dce.AddArgument("ryu/app/nix_simple_bfs.py");
+        	  break;
+          case NSUCS:
+        	  dce.AddArgument("ryu/app/nix_simple_ucs.py");
+        	  break;
+          case NMBFS:
+        	  dce.AddArgument("ryu/app/nix_mpls_bfs.py");
+        	  break;
+          case NMUCS:
+        	  dce.AddArgument("ryu/app/nix_mpls_ucs.py");
+        	  break;
+          case FWCS:
+        	  dce.AddArgument("ryu/app/fw_cuda_simple.py");
+        	  break;
+          case FWCM:
+        	  dce.AddArgument("ryu/app/fw_cuda_mpls.py");
+        	  break;
+          default:
+        	  NS_LOG_ERROR ("Invalid controller application");
+          }
+
+          apps.Add (dce.Install (of13ControllerNodes.Get(z)));
+      }
   }
   apps.Start (Seconds (0.0));
 
   // Create Traffic Flows
-  std::cout << "Creating TCP Traffic Flows:" << std::endl;
-  Config::SetDefault ("ns3::OnOffApplication::MaxBytes",
-                      UintegerValue (nBytes));
+  //std::cout << "Creating UDP Traffic Flows:" << std::endl;
   Config::SetDefault ("ns3::OnOffApplication::OnTime",
                       StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
   Config::SetDefault ("ns3::OnOffApplication::OffTime",
                       StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+  Config::SetDefault ("ns3::OnOffApplication::DataRate",
+		  	  	  	  DataRateValue(DataRate("100kb/s")));
+  Config::SetDefault ("ns3::OnOffApplication::PacketSize",
+		  	  	  	  UintegerValue(1400));
 
+  ApplicationContainer clientApps;
   ApplicationContainer sinkApps;
-  Ptr<UniformRandomVariable> urng = CreateObject<UniformRandomVariable> ();
-  int r1;
-  double r2;
-  for (uint32_t z = 0; z < nCampuses; ++z)
-    {
-      uint32_t x = z + 1;
-      if (z == nCampuses - 1)
-        {
-          x = 0;
-        }
-      // Subnet 2 LANs
-      std::cout << "  Campus Network " << z << " Flows [ Net2 ";
-	  for (uint32_t j = 0; j < nClientsPer; ++j)
-		{
-		  // Sinks
-		  PacketSinkHelper sinkHelper
-			("ns3::TcpSocketFactory",
-			InetSocketAddress (Ipv4Address::GetAny (), 9999));
-
-		  for (uint32_t i = 0; i < 7; ++i)
-		  {
-			  ApplicationContainer sinkApp = sinkHelper.Install (net2Clients[z].Get(j*nClientsPer+i));
-			  sinkApp.Start (Seconds (0.0));
-			  sinkApps.Add(sinkApp);
-		  }
-
-		  // Sources
-		  OnOffHelper client ("ns3::TcpSocketFactory", Address ());
-
-		  r1 = (int)(4 * urng->GetValue ()); r2 = 10 * urng->GetValue ();
-		  AddressValue remoteAddress22 (InetSocketAddress (net22Interfaces[z].GetAddress(j, 0), 9999));
-		  client.SetAttribute ("Remote", remoteAddress22);
-		  ApplicationContainer clientApp22;
-		  clientApp22.Add (client.Install (net1Servers[x].Get(r1)));
-		  clientApp22.Start (Seconds (r2));
-
-		  // Subnet 3 LANs
-		  std::cout << "Net3 ]" << std::endl;
-
-		  // Sinks
-		  for (uint32_t i = 0; i < 5; ++i)
-		  {
-			  ApplicationContainer sinkApp = sinkHelper.Install (net3Clients[z].Get(j*nClientsPer+i));
-			  sinkApp.Start (Seconds (0.0));
-			  sinkApps.Add(sinkApp);
-		  }
-
-		  // Sources
-		  r1 = (int)(4 * urng->GetValue ()); r2 = 10 * urng->GetValue ();
-		  AddressValue remoteAddress30a (InetSocketAddress (net30aInterfaces[z].GetAddress(j, 0), 9999));
-		  client.SetAttribute ("Remote", remoteAddress30a);
-		  ApplicationContainer clientApp30a;
-		  clientApp30a.Add (client.Install (net1Servers[x].Get(r1)));
-		  clientApp30a.Start (Seconds (r2));
-        }
-    }
-
-  // Install FlowMonitor
-  FlowMonitorHelper monitor;
-  monitor.Install (net1Servers[0]);
-  monitor.Install (net2Clients[0]);
-  monitor.Install (net3Clients[0]);
-
-  std::cout << "Running simulator..." << std::endl;
-  TIMER_NOW (t1);
-  Simulator::Stop(Seconds(100));
-  Simulator::Run ();
-  TIMER_NOW (t2);
-  std::cout << "Simulator finished: " << Simulator::Now().GetSeconds() << std::endl;
-  Simulator::Destroy ();
-
-  // Transmitted bytes
-  for (uint32_t i = 0; i < sinkApps.GetN(); ++i)
+  Ptr<NormalRandomVariable> nrng = CreateObject<NormalRandomVariable> ();
+  double startTime1 = 0.0;
+  double startTime2 = 0.0;
+  double startTime3 = 0.0;
+  if (numFlows > 0)
   {
-	  Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApps.Get (i));
-	  std::cout << "Total bytes sent: " << sink->GetTotalRx () << std::endl;
+	  for (size_t i = 0; i < 4; ++i)
+	  {
+		  OnOffHelper client1 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress1 (InetSocketAddress (net1Interfaces.at(0).GetAddress(0,0), 45000+i));
+		  client1.SetAttribute ("Remote", remoteAddress1);
+
+		  ApplicationContainer clientApp1;
+		  clientApp1.Add (client1.Install (net2Clients.at(0).Get(i)));
+		  startTime1 = nrng->GetValue(40.2022,12.7569);
+		  std::cout << startTime1 << "\t";
+		  clientApp1.Start (Seconds (startTime1));
+		  clientApps.Add(clientApp1);
+
+		  PacketSinkHelper sinkHelper1 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+i));
+		  sinkApps.Add(sinkHelper1.Install (net1Servers.at(0).Get(0)));
+
+		  OnOffHelper client2 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress2 (InetSocketAddress (net1Interfaces.at(0).GetAddress(1,0), 45000+i));
+		  client2.SetAttribute ("Remote", remoteAddress2);
+
+		  ApplicationContainer clientApp2;
+		  clientApp2.Add (client2.Install (net2Clients.at(0).Get(i+nClientsPer)));
+		  startTime1 = nrng->GetValue(45.1488,15.8784);
+		  std::cout << startTime1 << "\t";
+		  clientApp2.Start (Seconds (startTime1));
+		  clientApps.Add(clientApp2);
+
+		  PacketSinkHelper sinkHelper2 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+i));
+		  sinkApps.Add(sinkHelper2.Install (net1Servers.at(0).Get(1)));
+
+
+
+		  OnOffHelper client3 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress3 (InetSocketAddress (net1Interfaces.at(0).GetAddress(2,0), 45000+i));
+		  client3.SetAttribute ("Remote", remoteAddress3);
+
+		  ApplicationContainer clientApp3;
+		  clientApp3.Add (client3.Install (net3Clients.at(0).Get(i)));
+		  startTime1 = nrng->GetValue(50.3700,12.4275);
+		  std::cout << startTime1 << "\t";
+		  clientApp3.Start (Seconds (startTime1));
+		  clientApps.Add(clientApp3);
+
+		  PacketSinkHelper sinkHelper3 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+i));
+		  sinkApps.Add(sinkHelper3.Install (net1Servers.at(0).Get(2)));
+
+		  OnOffHelper client4 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress4 (InetSocketAddress (net1Interfaces.at(0).GetAddress(3,0), 45000+i));
+		  client4.SetAttribute ("Remote", remoteAddress4);
+
+		  ApplicationContainer clientApp4;
+		  clientApp4.Add (client4.Install (net3Clients.at(0).Get(i+nClientsPer)));
+		  startTime1 = nrng->GetValue(52.0771,12.1562);
+		  std::cout << startTime1 << "\t";
+		  clientApp4.Start (Seconds (startTime1));
+		  clientApps.Add(clientApp4);
+
+		  PacketSinkHelper sinkHelper4 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+i));
+		  sinkApps.Add(sinkHelper4.Install (net1Servers.at(0).Get(3)));
+	  }
+	  startTime3 = startTime1; // In case fewer flows
+  }
+  if (numFlows > 1)
+  {
+	  for (size_t i = 0; i < 4; ++i)
+	  {
+		  OnOffHelper client1 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress1 (InetSocketAddress (net1Interfaces.at(0).GetAddress(0,0), 45000+100+i));
+		  client1.SetAttribute ("Remote", remoteAddress1);
+
+		  ApplicationContainer clientApp1;
+		  clientApp1.Add (client1.Install (net2Clients.at(0).Get(i+2*nClientsPer)));
+		  startTime2 = nrng->GetValue(60.9917,8.8969);
+		  std::cout << startTime2 << "\t";
+		  clientApp1.Start (Seconds (startTime2));
+		  clientApps.Add(clientApp1);
+
+		  PacketSinkHelper sinkHelper1 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+100+i));
+		  sinkApps.Add(sinkHelper1.Install (net1Servers.at(0).Get(0)));
+
+		  OnOffHelper client2 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress2 (InetSocketAddress (net1Interfaces.at(0).GetAddress(1,0), 45000+100+i));
+		  client2.SetAttribute ("Remote", remoteAddress2);
+
+		  ApplicationContainer clientApp2;
+		  clientApp2.Add (client2.Install (net2Clients.at(0).Get(i+3*nClientsPer)));
+		  startTime2 = nrng->GetValue(62.2988,8.7971);
+		  std::cout << startTime2 << "\t";
+		  clientApp2.Start (Seconds (startTime2));
+		  clientApps.Add(clientApp2);
+
+		  PacketSinkHelper sinkHelper2 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+100+i));
+		  sinkApps.Add(sinkHelper2.Install (net1Servers.at(0).Get(1)));
+
+
+
+		  OnOffHelper client3 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress3 (InetSocketAddress (net1Interfaces.at(0).GetAddress(2,0), 45000+100+i));
+		  client3.SetAttribute ("Remote", remoteAddress3);
+
+		  ApplicationContainer clientApp3;
+		  clientApp3.Add (client3.Install (net3Clients.at(0).Get(i+2*nClientsPer)));
+		  startTime2 = nrng->GetValue(63.6185,8.9161);
+		  std::cout << startTime2 << "\t";
+		  clientApp3.Start (Seconds (startTime2));
+		  clientApps.Add(clientApp3);
+
+		  PacketSinkHelper sinkHelper3 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+100+i));
+		  sinkApps.Add(sinkHelper3.Install (net1Servers.at(0).Get(2)));
+
+		  OnOffHelper client4 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress4 (InetSocketAddress (net1Interfaces.at(0).GetAddress(3,0), 45000+100+i));
+		  client4.SetAttribute ("Remote", remoteAddress4);
+
+		  ApplicationContainer clientApp4;
+		  clientApp4.Add (client4.Install (net3Clients.at(0).Get(i+3*nClientsPer)));
+		  startTime2 = nrng->GetValue(66.8806,10.3544);
+		  std::cout << startTime2 << "\t";
+		  clientApp4.Start (Seconds (startTime2));
+		  clientApps.Add(clientApp4);
+
+		  PacketSinkHelper sinkHelper4 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+100+i));
+		  sinkApps.Add(sinkHelper4.Install (net1Servers.at(0).Get(3)));
+	  }
+	  startTime3 = startTime2; // In case fewer flows
+  }
+  if (numFlows > 2)
+  {
+	  for (size_t i = 0; i < 4; ++i)
+	  {
+		  OnOffHelper client1 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress1 (InetSocketAddress (net1Interfaces.at(0).GetAddress(0,0), 45000+200+i));
+		  client1.SetAttribute ("Remote", remoteAddress1);
+
+		  ApplicationContainer clientApp1;
+		  clientApp1.Add (client1.Install (net2Clients.at(0).Get(i+4*nClientsPer)));
+		  startTime3 = nrng->GetValue(76.4604,8.3340);
+		  std::cout << startTime3 << "\t";
+		  clientApp1.Start (Seconds (startTime3));
+		  clientApps.Add(clientApp1);
+
+		  PacketSinkHelper sinkHelper1 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+200+i));
+		  sinkApps.Add(sinkHelper1.Install (net1Servers.at(0).Get(0)));
+
+		  OnOffHelper client2 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress2 (InetSocketAddress (net1Interfaces.at(0).GetAddress(1,0), 45000+200+i));
+		  client2.SetAttribute ("Remote", remoteAddress2);
+
+		  ApplicationContainer clientApp2;
+		  clientApp2.Add (client2.Install (net2Clients.at(0).Get(i+5*nClientsPer)));
+		  startTime3 = nrng->GetValue(77.6292,8.3340);
+		  std::cout << startTime3 << "\t";
+		  clientApp2.Start (Seconds (startTime3));
+		  clientApps.Add(clientApp2);
+
+		  PacketSinkHelper sinkHelper2 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+200+i));
+		  sinkApps.Add(sinkHelper2.Install (net1Servers.at(0).Get(1)));
+
+
+
+		  OnOffHelper client3 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress3 (InetSocketAddress (net1Interfaces.at(0).GetAddress(2,0), 45000+200+i));
+		  client3.SetAttribute ("Remote", remoteAddress3);
+
+		  ApplicationContainer clientApp3;
+		  clientApp3.Add (client3.Install (net3Clients.at(0).Get(i+4*nClientsPer)));
+		  startTime3 = nrng->GetValue(78.4683,8.4330);
+		  std::cout << startTime3 << "\t";
+		  clientApp3.Start (Seconds (startTime3));
+		  clientApps.Add(clientApp3);
+
+		  PacketSinkHelper sinkHelper3 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+200+i));
+		  sinkApps.Add(sinkHelper3.Install (net1Servers.at(0).Get(2)));
+
+		  OnOffHelper client4 ("ns3::UdpSocketFactory", Address ());
+		  AddressValue remoteAddress4 (InetSocketAddress (net1Interfaces.at(0).GetAddress(3,0), 45000+200+i));
+		  client4.SetAttribute ("Remote", remoteAddress4);
+
+		  ApplicationContainer clientApp4;
+		  clientApp4.Add (client4.Install (net2Clients.at(0).Get(i+6*nClientsPer)));
+		  startTime3 = nrng->GetValue(80.1033,8.4256);
+		  std::cout << startTime3 << "\t";
+		  clientApp4.Start (Seconds (startTime3));
+		  clientApps.Add(clientApp4);
+
+		  PacketSinkHelper sinkHelper4 ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000+200+i));
+		  sinkApps.Add(sinkHelper4.Install (net1Servers.at(0).Get(3)));
+	  }
+	  startTime3 = startTime2; // In case fewer flows
+  }
+  if (numFlows > 0)
+  {
+	  sinkApps.Start (Seconds (0));
   }
 
-  // Dump FlowMonitor results
-  monitor.SerializeToXmlFile ("FlowMonitor.xml", false, false);
+  V4PingHelper v4ping(net1Interfaces.at(0).GetAddress(3,0));
+  v4ping.SetAttribute("Verbose", BooleanValue(true));
+  v4ping.SetAttribute("Size", UintegerValue(1422));
+  v4ping.SetAttribute("Count", UintegerValue(2));
+  ApplicationContainer pingApp1_0 = v4ping.Install(net1Servers.at(0).Get(0));
+  pingApp1_0.Start(Seconds(startTime3+20.0));
+  ApplicationContainer pingApp2_9 = v4ping.Install(net2Clients.at(0).Get(0+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+  pingApp2_9.Start(Seconds(startTime3+22.0));
+  v4ping.SetAttribute("Stopper", BooleanValue(true));
+  ApplicationContainer pingApp3_5 = v4ping.Install(net3Clients.at(0).Get(0+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+  pingApp3_5.Start(Seconds(startTime3+30.0));
 
-  double d1 = TIMER_DIFF (t1, t0), d2 = TIMER_DIFF (t2, t1);
-  std::cout << "-----" << std::endl << "Runtime Stats:" << std::endl;
-  std::cout << "Simulator init time: " << d1 << std::endl;
-  std::cout << "Simulator run time: " << d2 << std::endl;
-  std::cout << "Total elapsed time: " << d1 + d2 << std::endl;
+  //std::cout << "Running simulator..." << std::endl;
+  Simulator::Stop(Seconds(startTime3+60.0));
+  Simulator::Run ();
+  if (!realController)
+  {
+	  Ptr<DceApplication> controller = DynamicCast<DceApplication> (of13ControllerNodes.Get(0)->GetApplication(0));
+	  controller->StopExternally();
+  }
+
+  // Transmitted bytes
+  uint32_t sentBytes = 0;
+  uint32_t recvBytes = 0;
+  for (size_t i = 0; i < clientApps.GetN(); ++i)
+  {
+	  Ptr<OnOffApplication> source = DynamicCast<OnOffApplication> (clientApps.Get (i));
+	  sentBytes += source->m_totBytes;
+  }
+  for (size_t i = 0; i < sinkApps.GetN(); ++i)
+  {
+	  Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApps.Get (i));
+	  recvBytes += sink->GetTotalRx();
+  }
+  TIMER_NOW(t1);
+  double d1 = TIMER_DIFF (t1, t0);
+  std::cout << recvBytes << "\t" << (sentBytes == 0 ? 0 : 100 * (sentBytes - recvBytes) / sentBytes) << "%\t"
+		  << "\t" << recvBytes * 8.0 / Simulator::Now().GetSeconds() << "\t" << Simulator::Now().GetSeconds()
+		  << "\t" << d1 << std::endl;
+
+  Simulator::Destroy ();
 }
 

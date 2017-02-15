@@ -75,6 +75,7 @@ public:
 
   void SetScheduler (Ptr<TaskScheduler> scheduler);
   void SetDelayModel (Ptr<ProcessDelayModel> model);
+  void SetScalingFactor (double value) { m_scalingFactor = value; }
 
   /**
    * Create a task and schedule it to run later.
@@ -194,6 +195,11 @@ private:
   EventImpl *m_todoOnMain;
   bool m_noSignal; // I am not come back from a real thread interruption do not run signal ....
   bool m_disposing; // In order to never loop while disposing me.
+
+  Ptr<GammaRandomVariable> m_gv;
+  Time m_lastUpdate;
+  double m_scalingFactor;
+  double m_cumulativeDelay;
 };
 
 } // namespace

@@ -292,6 +292,7 @@ int dce_gettimeofday (struct timeval *tv, struct timezone *tz)
   NS_ASSERT (Current () != 0);
   NS_ASSERT (tz == 0);
   *tv = UtilsTimeToTimeval (UtilsSimulationTimeToTime (Now ()));
+  NS_LOG_INFO("tv: " << tv->tv_sec << "s + " << tv->tv_usec << "us");
   return 0;
 }
 int dce_nanosleep (const struct timespec *req, struct timespec *rem)

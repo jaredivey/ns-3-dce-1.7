@@ -24,6 +24,7 @@ time_t dce_time (time_t *t)
     {
       *t = time;
     }
+  NS_LOG_INFO ("time " << time);
   return time;
 }
 

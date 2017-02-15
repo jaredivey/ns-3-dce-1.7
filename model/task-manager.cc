@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "process-delay-model.h"
 #include "dce-cxa.h"
+#include "ns3/double.h"
 
 namespace ns3 {
 
@@ -87,6 +88,11 @@ TaskManager::GetTypeId (void)
                    UintegerValue (8192),
                    MakeUintegerAccessor (&TaskManager::m_defaultStackSize),
                    MakeUintegerChecker<uint32_t> (4096))
+    .AddAttribute ("ScalingFactor",
+				   "Scaling factor for task duration delays.",
+				   DoubleValue (1.0),
+				   MakeDoubleAccessor (&TaskManager::m_scalingFactor),
+				   MakeDoubleChecker<double> (0.0))
     .AddAttribute ("FiberManagerType",
                    "The type of FiberManager implementation to use to allocate, "
                    "deallocate and switch among fibers.",
@@ -107,9 +113,16 @@ TaskManager::TaskManager ()
     m_disposing (0),
     m_todoOnMain (0),
     m_noSignal (0),
-    m_hightask (0)
+    m_hightask (0),
+    m_scalingFactor (1.0),
+    m_cumulativeDelay (0.0)
 {
   NS_LOG_FUNCTION (this);
+
+  m_gv = CreateObject<GammaRandomVariable> ();
+  m_gv->SetAttribute("Alpha", DoubleValue(0.8867));
+  m_gv->SetAttribute("Beta", DoubleValue(0.000021282));
+  m_lastUpdate = Simulator::Now();
 }
 TaskManager::~TaskManager ()
 {
@@ -311,14 +324,25 @@ TaskManager::Wakeup (Task *task)
   m_scheduler->Enqueue (task);
   if ((0 == m_current) && (!m_nextSchedule.IsRunning ()))
     {
-      m_nextSchedule = Simulator::ScheduleNow (&TaskManager::Schedule, this);
+//      m_nextSchedule = Simulator::ScheduleNow (&TaskManager::Schedule, this);
+	  if (Simulator::Now() == m_lastUpdate)
+	  {
+		  m_cumulativeDelay += m_gv->GetValue() * m_scalingFactor;
+	  }
+	  else
+	  {
+		  m_lastUpdate = Simulator::Now();
+		  m_cumulativeDelay = m_gv->GetValue() * m_scalingFactor;
+	  }
+	  //std::cout << "Delay: " << m_cumulativeDelay << std::endl;
+      m_nextSchedule = Simulator::Schedule (Seconds(m_cumulativeDelay), &TaskManager::Schedule, this);
     }
 }
 
 void
 TaskManager::Sleep (void)
 {
-  NS_LOG_FUNCTION (this << m_current);
+  NS_LOG_FUNCTION (this << m_current << "void");
   NS_ASSERT (m_current != 0);
   NS_ASSERT (m_current->m_state == Task::RUNNING);
   Task *current = m_current;
@@ -329,7 +353,7 @@ TaskManager::Sleep (void)
 Time
 TaskManager::Sleep (Time timeout)
 {
-  NS_LOG_FUNCTION (this << m_current);
+  NS_LOG_FUNCTION (this << m_current << timeout.GetSeconds());
   NS_ASSERT (m_current != 0);
   NS_ASSERT (m_current->m_state == Task::RUNNING);
   Time expectedEnd = Simulator::Now () + timeout;
@@ -453,7 +477,18 @@ again:
                 }
               else
                 {
-                  Simulator::ScheduleNow (&TaskManager::Schedule, this);
+//                  Simulator::ScheduleNow (&TaskManager::Schedule, this);
+            	  if (Simulator::Now() == m_lastUpdate)
+            	  {
+            		  m_cumulativeDelay += m_gv->GetValue() * m_scalingFactor;
+            	  }
+            	  else
+            	  {
+            		  m_lastUpdate = Simulator::Now();
+            		  m_cumulativeDelay = m_gv->GetValue() * m_scalingFactor;
+            	  }
+            	  //std::cout << "Delay: " << m_cumulativeDelay << std::endl;
+                  Simulator::Schedule (Seconds(m_cumulativeDelay), &TaskManager::Schedule, this);
                 }
             }
         }
@@ -476,6 +511,7 @@ again:
       Time delay = m_delayModel->RecordEnd ();
       struct Task *next = m_scheduler->PeekNext ();
       NS_LOG_DEBUG ("Leaving " << m_current << ", delay " << delay << " next = " << next << " entering main");
+      m_reSchedule = true;
       if (next != 0)
         {
           // but before leaving, we check if we have further processes active, and,

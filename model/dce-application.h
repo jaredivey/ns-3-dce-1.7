@@ -40,6 +40,7 @@ public:
   void SetEgid (uid_t i);
 
   uint16_t GetPid();
+  void StopExternally (void) { StopApplication(); }
 
 private:
   // inherited from Application base class.

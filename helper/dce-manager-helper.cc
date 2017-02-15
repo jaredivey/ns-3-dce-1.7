@@ -97,15 +97,15 @@ DceManagerHelper::SetAttribute (std::string n1, const AttributeValue &v1)
 }
 
 void
-DceManagerHelper::Install (NodeContainer nodes)
+DceManagerHelper::Install (NodeContainer nodes, double scalingFactor)
 {
   for (NodeContainer::Iterator i = nodes.Begin (); i != nodes.End (); ++i)
     {
-        Install( *i );
+        Install( *i, scalingFactor);
     }
 }
 void
-DceManagerHelper::Install (Ptr<Node> node)
+DceManagerHelper::Install (Ptr<Node> node, double scalingFactor)
 {
 
       Ptr<DceManager> manager = m_managerFactory.Create<DceManager> ();
@@ -117,6 +117,7 @@ DceManagerHelper::Install (Ptr<Node> node)
 
       taskManager->SetScheduler (scheduler);
       taskManager->SetDelayModel (delay);
+      taskManager->SetScalingFactor(scalingFactor);
       Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable> ();
       manager->SetAttribute ("FirstPid", UintegerValue (uv->GetInteger (0, 0xffff)));
       node->AggregateObject (taskManager);

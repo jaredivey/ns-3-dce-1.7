@@ -65,3 +65,9 @@ int dce_initgroups(const char *user, gid_t group)
   return 0;
 }
 
+int dce_setgroups(size_t size, const gid_t *list)
+{
+  // XXX
+  return 0;
+}
+
