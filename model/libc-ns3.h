@@ -380,6 +380,8 @@ DCE (timer_create)
 DCE (timer_settime)
 DCE (timer_gettime)
 
+NATIVE (clock)
+
 // UTIME.H
 DCE (utime)
 DCE (tzset)

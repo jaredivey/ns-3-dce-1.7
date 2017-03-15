@@ -196,8 +196,9 @@ private:
   bool m_noSignal; // I am not come back from a real thread interruption do not run signal ....
   bool m_disposing; // In order to never loop while disposing me.
 
-  Ptr<GammaRandomVariable> m_gv;
+  Ptr<WeibullRandomVariable> m_gv;
   Time m_lastUpdate;
+  double m_meanshift;
   double m_scalingFactor;
   double m_cumulativeDelay;
 };

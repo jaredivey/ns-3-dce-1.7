@@ -64,11 +64,11 @@ enum APP_TYPE {
 	FWM,
 	NMBFS,
 	NMUCS,
-	FWCM,
 	FWS,
 	NSBFS,
 	NSUCS,
-	FWCS
+	FWCS,
+	FWCM
 };
 
 static const char *apps[] =
@@ -77,11 +77,11 @@ static const char *apps[] =
 		"fwm",
 		"nm-bfs",
 		"nm-ucs",
-		"fwcm",
 		"fws",
 		"ns-bfs",
 		"ns-ucs",
-		"fwcs"
+		"fwcs",
+		"fwcm"
 };
 
 int
@@ -213,8 +213,9 @@ main (int argc, char *argv[])
       of13SwitchDevices = of13Helper->InstallSwitch (of13SwitchNodes.Get (i), of13SwitchPorts [i]);
     }
 
+  Config::SetDefault("ns3::TaskManager::FiberManagerType", EnumValue(1));
   DceManagerHelper dceManager;
-  dceManager.Install (of13ControllerNode, 100);
+  dceManager.Install (of13ControllerNode, 101);
   //dceManager.SetDelayModel("ns3::RandomProcessDelayModel", "Variable", StringValue ("ns3::GammaRandomVariable[Alpha=1,Beta=2]"));
 
   std::stringstream ss;
@@ -254,7 +255,7 @@ main (int argc, char *argv[])
   {
       DceApplicationHelper dce;
 
-      dce.SetStackSize (1<<30);
+      dce.SetStackSize (1<<20);
       dce.SetBinary ("python2-dce");
       dce.ResetArguments ();
       dce.ResetEnvironment ();
@@ -312,9 +313,14 @@ main (int argc, char *argv[])
   Config::SetDefault ("ns3::OnOffApplication::OffTime",
                       StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
   Config::SetDefault ("ns3::OnOffApplication::DataRate",
-		  	  	  	  DataRateValue(DataRate("100kb/s")));
+		  	  	  	  DataRateValue(DataRate("800kb/s")));
   Config::SetDefault ("ns3::OnOffApplication::PacketSize",
 		  	  	  	  UintegerValue(1400));
+
+  Config::SetDefault ("ns3::ArPing::Verbose", BooleanValue(false));
+  Config::SetDefault ("ns3::ArPing::Interval", TimeValue(Seconds(5)));
+  Config::SetDefault ("ns3::ArPing::Size", UintegerValue(56));
+  Config::SetDefault ("ns3::ArPing::Count", UintegerValue(1));
 
   ApplicationContainer clientApps;
   ApplicationContainer sinkApps;
@@ -322,6 +328,8 @@ main (int argc, char *argv[])
   double startTime1 = 0.0;
   double startTime2 = 0.0;
   double startTime3 = 0.0;
+  double arpingStart = 3.0;
+  double arpingJump = 0.5;
   if (numFlows > 0)
   {
 	  for (size_t i = 0; i < 4; ++i)
@@ -334,12 +342,21 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp;
 		  clientApp.Add (client.Install (hosts.at(1).Get(i)));
 		  startTime1 = nrng->GetValue(7.8388,1.0597);
-		  std::cout << startTime1 << "\t";
+		  //std::cout << startTime1 << "\t";
 		  clientApp.Start (Seconds (startTime1));
 		  clientApps.Add(clientApp);
 
 		  PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000));
 		  sinkApps.Add(sinkHelper.Install (hosts.at(6).Get (i)));
+
+//		  ArPingHelper arping0a(internetIpIfaces.at(6).GetAddress(i,0));
+//		  arping0a.SetAttribute("DestHwAddress", AddressValue(hosts.at(6).Get (i)->GetDevice(0)->GetAddress()));
+//		  arping0a.SetAttribute("SourceHwAddress", AddressValue(hosts.at(1).Get(i)->GetDevice(0)->GetAddress()));
+//		  arping0a.SetAttribute("SourceIpAddress", Ipv4AddressValue(internetIpIfaces.at(1).GetAddress(0,0)));
+//		  ApplicationContainer arping0aApp = arping0a.Install(hosts.at(1).Get(i), hosts.at(1).Get(i)->GetDevice(0));
+//
+//		  arpingStart += arpingJump;
+//		  arping0aApp.Start(Seconds(arpingStart));
 	  }
 	  startTime3 = startTime1; // In case fewer flows
   }
@@ -355,12 +372,21 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp;
 		  clientApp.Add (client.Install (hosts.at(2).Get(i)));
 		  startTime2 = nrng->GetValue(13.1000,1.2928);
-		  std::cout << startTime2 << "\t";
+		  //std::cout << startTime2 << "\t";
 		  clientApp.Start (Seconds (startTime2));
 		  clientApps.Add(clientApp);
 
 		  PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000));
 		  sinkApps.Add(sinkHelper.Install (hosts.at(5).Get (i)));
+
+//		  ArPingHelper arping0a(internetIpIfaces.at(5).GetAddress(i,0));
+//		  arping0a.SetAttribute("DestHwAddress", AddressValue(hosts.at(5).Get (i)->GetDevice(0)->GetAddress()));
+//		  arping0a.SetAttribute("SourceHwAddress", AddressValue(hosts.at(2).Get(i)->GetDevice(0)->GetAddress()));
+//		  arping0a.SetAttribute("SourceIpAddress", Ipv4AddressValue(internetIpIfaces.at(2).GetAddress(0,0)));
+//		  ApplicationContainer arping0aApp = arping0a.Install(hosts.at(2).Get(i), hosts.at(2).Get(i)->GetDevice(0));
+//
+//		  arpingStart += arpingJump;
+//		  arping0aApp.Start(Seconds(arpingStart));
 	  }
 	  startTime3 = startTime2; // In case fewer flows
   }
@@ -376,12 +402,21 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp;
 		  clientApp.Add (client.Install (hosts.at(3).Get(i)));
 		  startTime3 = nrng->GetValue(18.7396, 1.6237);
-		  std::cout << startTime3 << "\t";
+		  //std::cout << startTime3 << "\t";
 		  clientApp.Start (Seconds (startTime3));
 		  clientApps.Add(clientApp);
 
 		  PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 45000));
 		  sinkApps.Add(sinkHelper.Install (hosts.at(4).Get (i)));
+
+//		  ArPingHelper arping0a(internetIpIfaces.at(4).GetAddress(i,0));
+//		  arping0a.SetAttribute("DestHwAddress", AddressValue(hosts.at(4).Get (i)->GetDevice(0)->GetAddress()));
+//		  arping0a.SetAttribute("SourceHwAddress", AddressValue(hosts.at(3).Get(i)->GetDevice(0)->GetAddress()));
+//		  arping0a.SetAttribute("SourceIpAddress", Ipv4AddressValue(internetIpIfaces.at(3).GetAddress(0,0)));
+//		  ApplicationContainer arping0aApp = arping0a.Install(hosts.at(3).Get(i), hosts.at(3).Get(i)->GetDevice(0));
+//
+//		  arpingStart += arpingJump;
+//		  arping0aApp.Start(Seconds(arpingStart));
 	  }
   }
   if (numFlows > 0)
@@ -391,17 +426,23 @@ main (int argc, char *argv[])
 
   // Send ping from host 0 to 1
   // "Arping" to allow Ryu to know the source and dest that we really want to send to
-//  V4PingHelper arping1(internetIpIfaces.at(nSwitches-1).GetAddress(1,0));
-//  arping1.SetAttribute("Verbose", BooleanValue(true));
-//  arping1.SetAttribute("Count", UintegerValue(1));
-//  ApplicationContainer arpingApp1 = arping1.Install(hosts.at(0).Get(0));
-//  arpingApp1.Start(Seconds(2));
-//
-//  V4PingHelper arping2(internetIpIfaces.at(0).GetAddress(1,0));
-//  arping2.SetAttribute("Verbose", BooleanValue(true));
-//  arping2.SetAttribute("Count", UintegerValue(1));
-//  ApplicationContainer arpingApp2 = arping2.Install(hosts.at(nSwitches-1).Get(0));
-//  arpingApp2.Start(Seconds(3));
+  ArPingHelper arping1(internetIpIfaces.at(nSwitches-1).GetAddress(0,0));
+  arping1.SetAttribute("DestHwAddress", AddressValue(hosts.at(nSwitches-1).Get(0)->GetDevice(0)->GetAddress()));
+  arping1.SetAttribute("SourceHwAddress", AddressValue(hosts.at(0).Get(0)->GetDevice(0)->GetAddress()));
+  arping1.SetAttribute("SourceIpAddress", Ipv4AddressValue(internetIpIfaces.at(0).GetAddress(0,0)));
+  ApplicationContainer arping1App = arping1.Install(hosts.at(0).Get(0), hosts.at(0).Get(0)->GetDevice(0));
+
+  arpingStart += arpingJump;
+  arping1App.Start(Seconds(arpingStart));
+
+  ArPingHelper arping2(internetIpIfaces.at(0).GetAddress(0,0));
+  arping2.SetAttribute("DestHwAddress", AddressValue(hosts.at(0).Get(0)->GetDevice(0)->GetAddress()));
+  arping2.SetAttribute("SourceHwAddress", AddressValue(hosts.at(nSwitches-1).Get(0)->GetDevice(0)->GetAddress()));
+  arping2.SetAttribute("SourceIpAddress", Ipv4AddressValue(internetIpIfaces.at(nSwitches-1).GetAddress(0,0)));
+  ApplicationContainer arping2App = arping2.Install(hosts.at(nSwitches-1).Get(0), hosts.at(nSwitches-1).Get(0)->GetDevice(0));
+
+  arpingStart += arpingJump;
+  arping2App.Start(Seconds(arpingStart));
 
   V4PingHelper v4ping(internetIpIfaces.at(nSwitches-1).GetAddress(0,0));
   v4ping.SetAttribute("Verbose", BooleanValue(true));
@@ -410,7 +451,7 @@ main (int argc, char *argv[])
   v4ping.SetAttribute("Count", UintegerValue(2));
   ApplicationContainer pingApps = v4ping.Install(hosts.at(0).Get(0));
   pingApps.Start(Seconds(startTime3+20.0));
-  std::cout << startTime3+20.0 << std::endl;
+  //std::cout << startTime3+20.0 << std::endl;
 
   // Enable datapath logs
   if (verbose)

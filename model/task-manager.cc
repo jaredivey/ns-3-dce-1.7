@@ -5,6 +5,7 @@
 #include "task-scheduler.h"
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
+#include "ns3/boolean.h"
 #include "ns3/enum.h"
 #include "ns3/simulator.h"
 #include "ns3/node.h"
@@ -119,9 +120,23 @@ TaskManager::TaskManager ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_gv = CreateObject<GammaRandomVariable> ();
-  m_gv->SetAttribute("Alpha", DoubleValue(0.8867));
-  m_gv->SetAttribute("Beta", DoubleValue(0.000021282));
+  m_gv = CreateObject<WeibullRandomVariable> ();
+// Gamma Variables
+//  m_gv->SetAttribute("Alpha", DoubleValue(1.533984908884394));
+//  m_gv->SetAttribute("Beta", DoubleValue(0.000040304601688));
+//  m_meanshift = 0.0000618266507479885/4.0;
+// Weibull Variables
+  m_gv->SetAttribute("Scale", DoubleValue(0.000066947531077));
+  m_gv->SetAttribute("Shape", DoubleValue(1.280533983072459));
+  m_meanshift = 0.00001209;
+// Bounded Weibull 0.000522687
+//  m_gv->SetAttribute("Bound", DoubleValue(0.000003635));
+  m_gv->SetAttribute("Bound", DoubleValue(0.000522687));
+// Log-normal
+//  m_gv->SetAttribute("Mu", DoubleValue(-10.051255359574323));
+//  m_gv->SetAttribute("Sigma", DoubleValue(0.899568190138134));
+//  m_meanshift = 0.0000646421492207929/4.0;
+  m_gv->SetAttribute("Antithetic", BooleanValue(true));
   m_lastUpdate = Simulator::Now();
 }
 TaskManager::~TaskManager ()
@@ -327,12 +342,12 @@ TaskManager::Wakeup (Task *task)
 //      m_nextSchedule = Simulator::ScheduleNow (&TaskManager::Schedule, this);
 	  if (Simulator::Now() == m_lastUpdate)
 	  {
-		  m_cumulativeDelay += m_gv->GetValue() * m_scalingFactor;
+		  m_cumulativeDelay += (m_gv->GetValue() + m_meanshift)  * m_scalingFactor;
 	  }
 	  else
 	  {
 		  m_lastUpdate = Simulator::Now();
-		  m_cumulativeDelay = m_gv->GetValue() * m_scalingFactor;
+		  m_cumulativeDelay = (m_gv->GetValue() + m_meanshift)  * m_scalingFactor;
 	  }
 	  //std::cout << "Delay: " << m_cumulativeDelay << std::endl;
       m_nextSchedule = Simulator::Schedule (Seconds(m_cumulativeDelay), &TaskManager::Schedule, this);
@@ -473,6 +488,7 @@ again:
               m_reSchedule = false;
               if (m_reScheduleTime > Time (0))
                 {
+            	  std::cout << "Reschedule " << m_reScheduleTime.GetSeconds() << std::endl;
                   Simulator::Schedule (m_reScheduleTime, &TaskManager::Schedule, this);
                 }
               else
@@ -480,12 +496,12 @@ again:
 //                  Simulator::ScheduleNow (&TaskManager::Schedule, this);
             	  if (Simulator::Now() == m_lastUpdate)
             	  {
-            		  m_cumulativeDelay += m_gv->GetValue() * m_scalingFactor;
+            		  m_cumulativeDelay += (m_gv->GetValue() + m_meanshift) * m_scalingFactor;
             	  }
             	  else
             	  {
             		  m_lastUpdate = Simulator::Now();
-            		  m_cumulativeDelay = m_gv->GetValue() * m_scalingFactor;
+            		  m_cumulativeDelay = (m_gv->GetValue() + m_meanshift) * m_scalingFactor;
             	  }
             	  //std::cout << "Delay: " << m_cumulativeDelay << std::endl;
                   Simulator::Schedule (Seconds(m_cumulativeDelay), &TaskManager::Schedule, this);

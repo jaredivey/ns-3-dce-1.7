@@ -65,11 +65,11 @@ enum APP_TYPE {
 	FWM,
 	NMBFS,
 	NMUCS,
-	FWCM,
 	FWS,
 	NSBFS,
 	NSUCS,
-	FWCS
+	FWCS,
+	FWCM
 };
 
 static const char *apps[] =
@@ -78,11 +78,11 @@ static const char *apps[] =
 		"fwm",
 		"nm-bfs",
 		"nm-ucs",
-		"fwcm",
 		"fws",
 		"ns-bfs",
 		"ns-ucs",
-		"fwcs"
+		"fwcs",
+		"fwcm"
 };
 
 int
@@ -102,6 +102,7 @@ main (int argc, char *argv[])
   uint32_t run = 0;
 
   CommandLine cmd;
+  cmd.AddValue ("clients", "Number of LAN clients per switch", nClientsPer);
   cmd.AddValue ("campuses", "Number of campuses", nCampuses);
   cmd.AddValue ("connType", "Type of connection between controller and switch", connType);
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
@@ -166,13 +167,11 @@ main (int argc, char *argv[])
 	  NodeContainer net1s;
 	  net1s.Create(4);
 	  net1Servers.push_back(net1s);
-	  internet.Install(net1Servers[i]);
 	  net1Interfaces.push_back(Ipv4InterfaceContainer());
 
 	  NodeContainer net2c;
 	  net2c.Create(7*nClientsPer);
 	  net2Clients.push_back(net2c);
-	  internet.Install(net2Clients[i]);
 	  net22Interfaces.push_back(Ipv4InterfaceContainer());
 	  net23Interfaces.push_back(Ipv4InterfaceContainer());
 	  net24Interfaces.push_back(Ipv4InterfaceContainer());
@@ -184,7 +183,6 @@ main (int argc, char *argv[])
 	  NodeContainer net3c;
 	  net3c.Create(5*nClientsPer);
 	  net3Clients.push_back(net3c);
-	  internet.Install(net3Clients[i]);
 	  net30aInterfaces.push_back(Ipv4InterfaceContainer());
 	  net30bInterfaces.push_back(Ipv4InterfaceContainer());
 	  net32Interfaces.push_back(Ipv4InterfaceContainer());
@@ -231,27 +229,26 @@ main (int argc, char *argv[])
   // Initialize IPv4 host helpers
   Ipv4AddressHelper ipv4switches;
   Ipv4InterfaceContainer internetIpIfaces;
-  ipv4switches.SetBase ("192.168.0.0", "255.255.0.0");
+  ipv4switches.SetBase ("192.0.0.0", "255.0.0.0");
 
   DceManagerHelper dceManager;
-  dceManager.Install (of13ControllerNodes, 100);
+  dceManager.Install (of13ControllerNodes, 101);
   ApplicationContainer apps; // Holds DCE controller apps
 
-  std::vector< Ptr<OFSwitch13Helper> > of13Helpers;
+  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+  if (realController)
+  {
+	  of13Helper->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDCSMA));
+  }
+  else
+  {
+	  of13Helper->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDP2P));
+  }
+  of13Helper->InstallExternalController (of13ControllerNodes.Get(0));
+
+  NetDeviceContainer of13Switch0Ports[nCampuses];
   for (uint32_t z = 0; z < nCampuses; ++z)
   {
-	  // Set up controller
-	  of13Helpers.push_back(CreateObject<OFSwitch13Helper> ());
-	  if (realController)
-	  {
-		  of13Helpers[z]->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDCSMA));
-	  }
-	  else
-	  {
-		  of13Helpers[z]->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDP2P));
-	  }
-	  of13Helpers[z]->InstallExternalController (of13ControllerNodes.Get(z));
-
       //std::cout << "Creating Campus Network " << z << ":" << std::endl;
       // Create Net0
       //std::cout << "  SubNet [ 0 ]" << std::endl;
@@ -289,6 +286,8 @@ main (int argc, char *argv[])
     	  tmp1.Add(net1Switches[z].Get(swIndex));
     	  tmp1.Add(net1Servers[z].Get(i));
     	  ndc1[i] = csma_1gb5ms.Install(tmp1);
+
+    	  internet.Install(net1Servers.at(z).Get(i));
 
     	  of13SwitchPorts1[swIndex].Add(ndc1[i].Get(0));
     	  net1Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc1[i].Get(1))));
@@ -441,6 +440,8 @@ main (int argc, char *argv[])
 		  NetDeviceContainer ndc2_2c;
 		  ndc2_2c = csma_100mb1ms.Install(net2_2c);
 		  of13SwitchPorts2[2].Add(ndc2_2c.Get(0));
+
+    	  internet.Install(net2Clients.at(z).Get(i));
     	  net22Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc2_2c.Get(1))));
 
 		  NodeContainer net2_3c;
@@ -449,46 +450,58 @@ main (int argc, char *argv[])
 		  NetDeviceContainer ndc2_3c;
 		  ndc2_3c = csma_100mb1ms.Install(net2_3c);
 		  of13SwitchPorts2[3].Add(ndc2_3c.Get(0));
+
+    	  internet.Install(net2Clients.at(z).Get(i+nClientsPer));
     	  net23Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc2_3c.Get(1))));
 
 		  NodeContainer net2_4c;
 		  net2_4c.Add(net2Switches[z].Get(4));
-		  net2_4c.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer));
+		  net2_4c.Add(net2Clients[z].Get(i+2*nClientsPer));
 		  NetDeviceContainer ndc2_4c;
 		  ndc2_4c = csma_100mb1ms.Install(net2_4c);
 		  of13SwitchPorts2[4].Add(ndc2_4c.Get(0));
+
+    	  internet.Install(net2Clients.at(z).Get(i+2*nClientsPer));
     	  net24Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc2_4c.Get(1))));
 
 		  NodeContainer net2_5c;
 		  net2_5c.Add(net2Switches[z].Get(5));
-		  net2_5c.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer));
+		  net2_5c.Add(net2Clients[z].Get(i+3*nClientsPer));
 		  NetDeviceContainer ndc2_5c;
 		  ndc2_5c = csma_100mb1ms.Install(net2_5c);
 		  of13SwitchPorts2[5].Add(ndc2_5c.Get(0));
+
+    	  internet.Install(net2Clients.at(z).Get(i+3*nClientsPer));
     	  net25Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc2_5c.Get(1))));
 
 		  NodeContainer net2_6ac;
 		  net2_6ac.Add(net2Switches[z].Get(6));
-		  net2_6ac.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+		  net2_6ac.Add(net2Clients[z].Get(i+4*nClientsPer));
 		  NetDeviceContainer ndc2_6ac;
 		  ndc2_6ac = csma_100mb1ms.Install(net2_6ac);
 		  of13SwitchPorts2[6].Add(ndc2_6ac.Get(0));
+
+    	  internet.Install(net2Clients.at(z).Get(i+4*nClientsPer));
     	  net26aInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc2_6ac.Get(1))));
 
 		  NodeContainer net2_6bc;
 		  net2_6bc.Add(net2Switches[z].Get(6));
-		  net2_6bc.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+		  net2_6bc.Add(net2Clients[z].Get(i+5*nClientsPer));
 		  NetDeviceContainer ndc2_6bc;
 		  ndc2_6bc = csma_100mb1ms.Install(net2_6bc);
 		  of13SwitchPorts2[6].Add(ndc2_6bc.Get(0));
+
+    	  internet.Install(net2Clients.at(z).Get(i+5*nClientsPer));
     	  net26bInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc2_6bc.Get(1))));
 
 		  NodeContainer net2_6cc;
 		  net2_6cc.Add(net2Switches[z].Get(6));
-		  net2_6cc.Add(net2Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+		  net2_6cc.Add(net2Clients[z].Get(i+6*nClientsPer));
 		  NetDeviceContainer ndc2_6cc;
 		  ndc2_6cc = csma_100mb1ms.Install(net2_6cc);
 		  of13SwitchPorts2[6].Add(ndc2_6cc.Get(0));
+
+    	  internet.Install(net2Clients.at(z).Get(i+6*nClientsPer));
     	  net26cInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc2_6cc.Get(1))));
 	  }
 
@@ -567,6 +580,8 @@ main (int argc, char *argv[])
 		  NetDeviceContainer ndc3_0ac;
 		  ndc3_0ac = csma_100mb1ms.Install(net3_0ac);
 		  of13SwitchPorts3[0].Add(ndc3_0ac.Get(0));
+
+    	  internet.Install(net3Clients.at(z).Get(i));
     	  net30aInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_0ac.Get(1))));
 
 		  NodeContainer net3_0bc;
@@ -575,30 +590,38 @@ main (int argc, char *argv[])
 		  NetDeviceContainer ndc3_0bc;
 		  ndc3_0bc = csma_100mb1ms.Install(net3_0bc);
 		  of13SwitchPorts3[0].Add(ndc3_0bc.Get(0));
+
+    	  internet.Install(net3Clients.at(z).Get(i+nClientsPer));
     	  net30bInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_0bc.Get(1))));
 
 		  NodeContainer net3_2c;
 		  net3_2c.Add(net3Switches[z].Get(2));
-		  net3_2c.Add(net3Clients[z].Get(i+nClientsPer+nClientsPer));
+		  net3_2c.Add(net3Clients[z].Get(i+2*nClientsPer));
 		  NetDeviceContainer ndc3_2c;
 		  ndc3_2c = csma_100mb1ms.Install(net3_2c);
 		  of13SwitchPorts3[2].Add(ndc3_2c.Get(0));
+
+    	  internet.Install(net3Clients.at(z).Get(i+2*nClientsPer));
     	  net32Interfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_2c.Get(1))));
 
 		  NodeContainer net3_3ac;
 		  net3_3ac.Add(net3Switches[z].Get(3));
-		  net3_3ac.Add(net3Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer));
+		  net3_3ac.Add(net3Clients[z].Get(i+3*nClientsPer));
 		  NetDeviceContainer ndc3_3ac;
 		  ndc3_3ac = csma_100mb1ms.Install(net3_3ac);
 		  of13SwitchPorts3[3].Add(ndc3_3ac.Get(0));
+
+    	  internet.Install(net3Clients.at(z).Get(i+3*nClientsPer));
     	  net33aInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_3ac.Get(1))));
 
 		  NodeContainer net3_3bc;
 		  net3_3bc.Add(net3Switches[z].Get(3));
-		  net3_3bc.Add(net3Clients[z].Get(i+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+		  net3_3bc.Add(net3Clients[z].Get(i+4*nClientsPer));
 		  NetDeviceContainer ndc3_3bc;
 		  ndc3_3bc = csma_100mb1ms.Install(net3_3bc);
 		  of13SwitchPorts3[3].Add(ndc3_3bc.Get(0));
+
+    	  internet.Install(net3Clients.at(z).Get(i+4*nClientsPer));
     	  net33bInterfaces[z].Add(ipv4switches.Assign (NetDeviceContainer(ndc3_3bc.Get(1))));
 	  }
 	  //std::cout << std::endl;
@@ -607,111 +630,139 @@ main (int argc, char *argv[])
 	  //std::cout << "Installing OpenFlow switches on Net 0... ";
       for (uint32_t i = 0; i < 3; ++i)
       {
-    	  of13Helpers[z]->InstallSwitch (net0Switches[z].Get(i), of13SwitchPorts0 [i]);
+    	  if (i)
+    	  {
+        	  of13Helper->InstallSwitch (net0Switches[z].Get(i), of13SwitchPorts0 [i]);
+    	  }
+    	  // Save the ports at switch 0:0 in case more are added for multiple campuses
+    	  else
+    	  {
+    		  of13Switch0Ports[z] = of13SwitchPorts0[i];
+    	  }
       }
       //std::cout << "1... ";
       for (uint32_t i = 0; i < 2; ++i)
       {
-    	  of13Helpers[z]->InstallSwitch (net1Switches[z].Get(i), of13SwitchPorts1 [i]);
+    	  of13Helper->InstallSwitch (net1Switches[z].Get(i), of13SwitchPorts1 [i]);
       }
       //std::cout << "2... ";
       for (uint32_t i = 0; i < 7; ++i)
       {
-    	  of13Helpers[z]->InstallSwitch (net2Switches[z].Get(i), of13SwitchPorts2 [i]);
+    	  of13Helper->InstallSwitch (net2Switches[z].Get(i), of13SwitchPorts2 [i]);
       }
       //std::cout << "3... ";
       for (uint32_t i = 0; i < 4; ++i)
       {
-    	  of13Helpers[z]->InstallSwitch (net3Switches[z].Get(i), of13SwitchPorts3 [i]);
+    	  of13Helper->InstallSwitch (net3Switches[z].Get(i), of13SwitchPorts3 [i]);
       }
       //std::cout << "4... ";
-	  of13Helpers[z]->InstallSwitch (net4Switch[z].Get(0), of13SwitchPorts4);
+	  of13Helper->InstallSwitch (net4Switch[z].Get(0), of13SwitchPorts4);
       //std::cout << "5... ";
-	  of13Helpers[z]->InstallSwitch (net5Switch[z].Get(0), of13SwitchPorts5);
+	  of13Helper->InstallSwitch (net5Switch[z].Get(0), of13SwitchPorts5);
       //std::cout << std::endl;
+  }
 
-      // Enable datapath logs
+  // Enable datapath logs
+  if (verbose)
+  {
+	  of13Helper->EnableDatapathLogs ("all");
+  }
+  // Enable pcap traces
+  if (trace)
+  {
+	  of13Helper->EnableOpenFlowPcap ();
+  }
+
+  // Connect the campuses in a ring at switch 0:0
+  if (nCampuses > 1)
+  {
+	  for (uint32_t z = 0; z < nCampuses; ++z)
+	  {
+		  NodeContainer tmp0Sw;
+		  tmp0Sw.Add(net0Switches[z].Get(0));
+		  tmp0Sw.Add(net0Switches[(z+1)%nCampuses].Get(0));
+		  NetDeviceContainer ndc = csma_1gb5ms.Install(tmp0Sw);
+
+	      of13Switch0Ports[z].Add(ndc.Get(0));
+	      of13Switch0Ports[(z+1)%nCampuses].Add(ndc.Get(1));
+	  }
+  }
+
+  for (uint32_t z = 0; z < nCampuses; ++z)
+  {
+	  of13Helper->InstallSwitch (net0Switches[z].Get(0), of13Switch0Ports [z]);
+  }
+
+  // Set up controller node application
+  if (realController)
+  {
+	  // TapBridge to local machine
+	  // The default configuration expects a controller on you local machine at port 6653
+	  TapBridgeHelper tapBridge;
+	  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
+	  std::stringstream ss;
+	  for (uint32_t tapIdx = 0; tapIdx < of13Helper->m_ctrlDevs.GetN(); ++tapIdx)
+	  {
+		  ss.str("");
+		  ss << "ctrl" << tapIdx;
+		  tapBridge.Install (of13ControllerNodes.Get(0),
+				  of13Helper->m_ctrlDevs.Get(tapIdx),
+				  StringValue (ss.str()));
+	  }
+  }
+  else
+  {
+      DceApplicationHelper dce;
+
+      dce.SetStackSize (1<<20);
+      dce.SetBinary ("python2-dce");
+      dce.ResetArguments ();
+      dce.ResetEnvironment ();
+      dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu");
+      dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu");
+      dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu");
       if (verbose)
       {
-    	  of13Helpers[z]->EnableDatapathLogs ("all");
+    	  dce.AddArgument ("-v");
       }
-      // Enable pcap traces
-      if (trace)
+      dce.AddArgument ("ryu-manager");
+      if (verbose)
       {
-    	  of13Helpers[z]->EnableOpenFlowPcap ();
+    	  dce.AddArgument ("--verbose");
+      }      switch (app)
+      {
+      case SS:
+    	  dce.AddArgument("ryu/app/simple_switch_13.py");
+    	  break;
+      case FWS:
+    	  dce.AddArgument("ryu/app/fw_simple.py");
+    	  break;
+      case FWM:
+    	  dce.AddArgument("ryu/app/fw_mpls.py");
+    	  break;
+      case NSBFS:
+    	  dce.AddArgument("ryu/app/nix_simple_bfs.py");
+    	  break;
+      case NSUCS:
+    	  dce.AddArgument("ryu/app/nix_simple_ucs.py");
+    	  break;
+      case NMBFS:
+    	  dce.AddArgument("ryu/app/nix_mpls_bfs.py");
+    	  break;
+      case NMUCS:
+    	  dce.AddArgument("ryu/app/nix_mpls_ucs.py");
+    	  break;
+      case FWCS:
+    	  dce.AddArgument("ryu/app/fw_cuda_simple.py");
+    	  break;
+      case FWCM:
+    	  dce.AddArgument("ryu/app/fw_cuda_mpls.py");
+    	  break;
+      default:
+    	  NS_LOG_ERROR ("Invalid controller application");
       }
 
-      // Set up controller node application
-      if (realController)
-      {
-    	  // TapBridge to local machine
-    	  // The default configuration expects a controller on you local machine at port 6653
-    	  TapBridgeHelper tapBridge;
-    	  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
-    	  std::stringstream ss;
-    	  for (uint32_t tapIdx = 0; tapIdx < of13Helpers[z]->m_ctrlDevs.GetN(); ++tapIdx)
-    	  {
-    		  ss.str("");
-    		  ss << "ctrl" << tapIdx;
-        	  tapBridge.Install (of13ControllerNodes.Get(z),
-        			  of13Helpers[z]->m_ctrlDevs.Get(tapIdx),
-        			  StringValue (ss.str()));
-    	  }
-      }
-      else
-      {
-          DceApplicationHelper dce;
-
-          dce.SetStackSize (1<<20);
-          dce.SetBinary ("python2-dce");
-          dce.ResetArguments ();
-          dce.ResetEnvironment ();
-          dce.AddEnvironment ("PATH", "/:/python2.7:/pox:/ryu");
-          dce.AddEnvironment ("PYTHONHOME", "/:/python2.7:/pox:/ryu");
-          dce.AddEnvironment ("PYTHONPATH", "/:/python2.7:/pox:/ryu");
-          if (verbose)
-          {
-        	  dce.AddArgument ("-v");
-          }
-          dce.AddArgument ("ryu-manager");
-          if (verbose)
-          {
-        	  dce.AddArgument ("--verbose");
-          }      switch (app)
-          {
-          case SS:
-        	  dce.AddArgument("ryu/app/simple_switch_13.py");
-        	  break;
-          case FWS:
-        	  dce.AddArgument("ryu/app/fw_simple.py");
-        	  break;
-          case FWM:
-        	  dce.AddArgument("ryu/app/fw_mpls.py");
-        	  break;
-          case NSBFS:
-        	  dce.AddArgument("ryu/app/nix_simple_bfs.py");
-        	  break;
-          case NSUCS:
-        	  dce.AddArgument("ryu/app/nix_simple_ucs.py");
-        	  break;
-          case NMBFS:
-        	  dce.AddArgument("ryu/app/nix_mpls_bfs.py");
-        	  break;
-          case NMUCS:
-        	  dce.AddArgument("ryu/app/nix_mpls_ucs.py");
-        	  break;
-          case FWCS:
-        	  dce.AddArgument("ryu/app/fw_cuda_simple.py");
-        	  break;
-          case FWCM:
-        	  dce.AddArgument("ryu/app/fw_cuda_mpls.py");
-        	  break;
-          default:
-        	  NS_LOG_ERROR ("Invalid controller application");
-          }
-
-          apps.Add (dce.Install (of13ControllerNodes.Get(z)));
-      }
+      apps.Add (dce.Install (of13ControllerNodes.Get(0)));
   }
   apps.Start (Seconds (0.0));
 
@@ -722,7 +773,7 @@ main (int argc, char *argv[])
   Config::SetDefault ("ns3::OnOffApplication::OffTime",
                       StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
   Config::SetDefault ("ns3::OnOffApplication::DataRate",
-		  	  	  	  DataRateValue(DataRate("100kb/s")));
+		  	  	  	  DataRateValue(DataRate("800kb/s")));
   Config::SetDefault ("ns3::OnOffApplication::PacketSize",
 		  	  	  	  UintegerValue(1400));
 
@@ -743,7 +794,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp1;
 		  clientApp1.Add (client1.Install (net2Clients.at(0).Get(i)));
 		  startTime1 = nrng->GetValue(40.2022,12.7569);
-		  std::cout << startTime1 << "\t";
+		  //std::cout << startTime1 << "\t";
 		  clientApp1.Start (Seconds (startTime1));
 		  clientApps.Add(clientApp1);
 
@@ -757,7 +808,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp2;
 		  clientApp2.Add (client2.Install (net2Clients.at(0).Get(i+nClientsPer)));
 		  startTime1 = nrng->GetValue(45.1488,15.8784);
-		  std::cout << startTime1 << "\t";
+		  //std::cout << startTime1 << "\t";
 		  clientApp2.Start (Seconds (startTime1));
 		  clientApps.Add(clientApp2);
 
@@ -773,7 +824,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp3;
 		  clientApp3.Add (client3.Install (net3Clients.at(0).Get(i)));
 		  startTime1 = nrng->GetValue(50.3700,12.4275);
-		  std::cout << startTime1 << "\t";
+		  //std::cout << startTime1 << "\t";
 		  clientApp3.Start (Seconds (startTime1));
 		  clientApps.Add(clientApp3);
 
@@ -787,7 +838,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp4;
 		  clientApp4.Add (client4.Install (net3Clients.at(0).Get(i+nClientsPer)));
 		  startTime1 = nrng->GetValue(52.0771,12.1562);
-		  std::cout << startTime1 << "\t";
+		  //std::cout << startTime1 << "\t";
 		  clientApp4.Start (Seconds (startTime1));
 		  clientApps.Add(clientApp4);
 
@@ -807,7 +858,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp1;
 		  clientApp1.Add (client1.Install (net2Clients.at(0).Get(i+2*nClientsPer)));
 		  startTime2 = nrng->GetValue(60.9917,8.8969);
-		  std::cout << startTime2 << "\t";
+		  //std::cout << startTime2 << "\t";
 		  clientApp1.Start (Seconds (startTime2));
 		  clientApps.Add(clientApp1);
 
@@ -821,7 +872,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp2;
 		  clientApp2.Add (client2.Install (net2Clients.at(0).Get(i+3*nClientsPer)));
 		  startTime2 = nrng->GetValue(62.2988,8.7971);
-		  std::cout << startTime2 << "\t";
+		  //std::cout << startTime2 << "\t";
 		  clientApp2.Start (Seconds (startTime2));
 		  clientApps.Add(clientApp2);
 
@@ -837,7 +888,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp3;
 		  clientApp3.Add (client3.Install (net3Clients.at(0).Get(i+2*nClientsPer)));
 		  startTime2 = nrng->GetValue(63.6185,8.9161);
-		  std::cout << startTime2 << "\t";
+		  //std::cout << startTime2 << "\t";
 		  clientApp3.Start (Seconds (startTime2));
 		  clientApps.Add(clientApp3);
 
@@ -851,7 +902,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp4;
 		  clientApp4.Add (client4.Install (net3Clients.at(0).Get(i+3*nClientsPer)));
 		  startTime2 = nrng->GetValue(66.8806,10.3544);
-		  std::cout << startTime2 << "\t";
+		  //std::cout << startTime2 << "\t";
 		  clientApp4.Start (Seconds (startTime2));
 		  clientApps.Add(clientApp4);
 
@@ -871,7 +922,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp1;
 		  clientApp1.Add (client1.Install (net2Clients.at(0).Get(i+4*nClientsPer)));
 		  startTime3 = nrng->GetValue(76.4604,8.3340);
-		  std::cout << startTime3 << "\t";
+		  //std::cout << startTime3 << "\t";
 		  clientApp1.Start (Seconds (startTime3));
 		  clientApps.Add(clientApp1);
 
@@ -885,7 +936,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp2;
 		  clientApp2.Add (client2.Install (net2Clients.at(0).Get(i+5*nClientsPer)));
 		  startTime3 = nrng->GetValue(77.6292,8.3340);
-		  std::cout << startTime3 << "\t";
+		  //std::cout << startTime3 << "\t";
 		  clientApp2.Start (Seconds (startTime3));
 		  clientApps.Add(clientApp2);
 
@@ -901,7 +952,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp3;
 		  clientApp3.Add (client3.Install (net3Clients.at(0).Get(i+4*nClientsPer)));
 		  startTime3 = nrng->GetValue(78.4683,8.4330);
-		  std::cout << startTime3 << "\t";
+		  //std::cout << startTime3 << "\t";
 		  clientApp3.Start (Seconds (startTime3));
 		  clientApps.Add(clientApp3);
 
@@ -915,7 +966,7 @@ main (int argc, char *argv[])
 		  ApplicationContainer clientApp4;
 		  clientApp4.Add (client4.Install (net2Clients.at(0).Get(i+6*nClientsPer)));
 		  startTime3 = nrng->GetValue(80.1033,8.4256);
-		  std::cout << startTime3 << "\t";
+		  //std::cout << startTime3 << "\t";
 		  clientApp4.Start (Seconds (startTime3));
 		  clientApps.Add(clientApp4);
 
@@ -929,19 +980,83 @@ main (int argc, char *argv[])
 	  sinkApps.Start (Seconds (0));
   }
 
-  V4PingHelper v4ping(net1Interfaces.at(0).GetAddress(3,0));
-  v4ping.SetAttribute("Verbose", BooleanValue(true));
-  v4ping.SetAttribute("Size", UintegerValue(1422));
-  v4ping.SetAttribute("Count", UintegerValue(2));
+  Config::SetDefault ("ns3::ArPing::Verbose", BooleanValue(false));
+  Config::SetDefault ("ns3::ArPing::Interval", TimeValue(Seconds(5)));
+  Config::SetDefault ("ns3::ArPing::Size", UintegerValue(56));
+  Config::SetDefault ("ns3::ArPing::Count", UintegerValue(1));
+
+  Config::SetDefault ("ns3::V4Ping::Verbose", BooleanValue(true));
+  if (nCampuses > 1)
+  {
+	  Config::SetDefault ("ns3::V4Ping::Interval", TimeValue(Seconds(10)));
+	  Config::SetDefault ("ns3::V4Ping::Size", UintegerValue(56));
+	  Config::SetDefault ("ns3::V4Ping::Count", UintegerValue(1));
+  }
+  else
+  {
+	  Config::SetDefault ("ns3::V4Ping::Interval", TimeValue(Seconds(1)));
+	  Config::SetDefault ("ns3::V4Ping::Size", UintegerValue(1422));
+	  Config::SetDefault ("ns3::V4Ping::Count", UintegerValue(2));
+  }
+
+  // "Arping" to allow Ryu to know the source and dest that we really want to send to
+  ArPingHelper arping1(net1Interfaces.at(nCampuses/2).GetAddress(3,0));
+  arping1.SetAttribute("DestHwAddress", AddressValue(net1Servers.at(nCampuses/2).Get(3)->GetDevice(0)->GetAddress()));
+
+  arping1.SetAttribute("SourceHwAddress", AddressValue(net1Servers.at(0).Get(0)->GetDevice(0)->GetAddress()));
+  arping1.SetAttribute("SourceIpAddress", Ipv4AddressValue(net1Interfaces.at(0).GetAddress(0,0)));
+  ApplicationContainer arping1aApp = arping1.Install(net1Servers.at(0).Get(0),net1Servers.at(0).Get(0)->GetDevice(0));
+  arping1aApp.Start(Seconds(5.0));
+
+  arping1.SetAttribute("SourceHwAddress", AddressValue(net2Clients.at(0).Get(0+6*nClientsPer)->GetDevice(0)->GetAddress()));
+  arping1.SetAttribute("SourceIpAddress", Ipv4AddressValue(net26cInterfaces.at(0).GetAddress(0,0)));
+  ApplicationContainer arping1bApp = arping1.Install(net2Clients.at(0).Get(0+6*nClientsPer),
+		  net2Clients.at(0).Get(0+6*nClientsPer)->GetDevice(0));
+  arping1bApp.Start(Seconds(6.0));
+
+  arping1.SetAttribute("SourceHwAddress", AddressValue(net3Clients.at(0).Get(0+4*nClientsPer)->GetDevice(0)->GetAddress()));
+  arping1.SetAttribute("SourceIpAddress", Ipv4AddressValue(net33bInterfaces.at(0).GetAddress(0,0)));
+  ApplicationContainer arping1cApp = arping1.Install(net3Clients.at(0).Get(0+4*nClientsPer),
+		  net3Clients.at(0).Get(0+4*nClientsPer)->GetDevice(0));
+  arping1cApp.Start(Seconds(7.0));
+
+  ArPingHelper arping2(net1Interfaces.at(0).GetAddress(0,0));
+  arping2.SetAttribute("DestHwAddress", AddressValue(net1Servers.at(0).Get(0)->GetDevice(0)->GetAddress()));
+  arping2.SetAttribute("SourceHwAddress", AddressValue(net1Servers.at(nCampuses/2).Get(3)->GetDevice(0)->GetAddress()));
+  arping2.SetAttribute("SourceIpAddress", Ipv4AddressValue(net1Interfaces.at(nCampuses/2).GetAddress(3,0)));
+  ApplicationContainer arping2App = arping2.Install(net1Servers.at(nCampuses/2).Get(3),
+		  net1Servers.at(nCampuses/2).Get(3)->GetDevice(0));
+  arping2App.Start(Seconds(8.0));
+
+  ArPingHelper arping3(net26cInterfaces.at(0).GetAddress(0,0));
+  arping3.SetAttribute("DestHwAddress", AddressValue(net2Clients.at(0).Get(0+6*nClientsPer)->GetDevice(0)->GetAddress()));
+  arping3.SetAttribute("SourceHwAddress", AddressValue(net1Servers.at(nCampuses/2).Get(3)->GetDevice(0)->GetAddress()));
+  arping3.SetAttribute("SourceIpAddress", Ipv4AddressValue(net1Interfaces.at(nCampuses/2).GetAddress(3,0)));
+  ApplicationContainer arping3App = arping3.Install(net1Servers.at(nCampuses/2).Get(3),
+		  net1Servers.at(nCampuses/2).Get(3)->GetDevice(0));
+  arping3App.Start(Seconds(9.0));
+
+  ArPingHelper arping4(net33bInterfaces.at(0).GetAddress(0,0));
+  arping4.SetAttribute("DestHwAddress", AddressValue(net3Clients.at(0).Get(0+4*nClientsPer)->GetDevice(0)->GetAddress()));
+  arping4.SetAttribute("SourceHwAddress", AddressValue(net1Servers.at(nCampuses/2).Get(3)->GetDevice(0)->GetAddress()));
+  arping4.SetAttribute("SourceIpAddress", Ipv4AddressValue(net1Interfaces.at(nCampuses/2).GetAddress(3,0)));
+  ApplicationContainer arping4App = arping4.Install(net1Servers.at(nCampuses/2).Get(3),
+		  net1Servers.at(nCampuses/2).Get(3)->GetDevice(0));
+  arping4App.Start(Seconds(10.0));
+
+  V4PingHelper v4ping(net1Interfaces.at(nCampuses/2).GetAddress(3,0));
   ApplicationContainer pingApp1_0 = v4ping.Install(net1Servers.at(0).Get(0));
   pingApp1_0.Start(Seconds(startTime3+20.0));
-  ApplicationContainer pingApp2_9 = v4ping.Install(net2Clients.at(0).Get(0+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+  ApplicationContainer pingApp2_9 = v4ping.Install(net2Clients.at(0).Get(0+6*nClientsPer));
   pingApp2_9.Start(Seconds(startTime3+22.0));
+
+  // Allow last campuses ping to stop simulator
   v4ping.SetAttribute("Stopper", BooleanValue(true));
-  ApplicationContainer pingApp3_5 = v4ping.Install(net3Clients.at(0).Get(0+nClientsPer+nClientsPer+nClientsPer+nClientsPer));
+  ApplicationContainer pingApp3_5 = v4ping.Install(net3Clients.at(0).Get(0+4*nClientsPer));
   pingApp3_5.Start(Seconds(startTime3+30.0));
 
   //std::cout << "Running simulator..." << std::endl;
+  std::cout << std::endl;
   Simulator::Stop(Seconds(startTime3+60.0));
   Simulator::Run ();
   if (!realController)
